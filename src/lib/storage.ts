@@ -75,16 +75,12 @@ export function saveVersionedSettings(key: string, settings: AppSettings): boole
 /**
  * Migrate data from any version to current.
  */
-function migrateSettings(data: unknown, fromVersion: number, defaults: AppSettings): AppSettings {
+function migrateSettings(data: unknown, _fromVersion: number, defaults: AppSettings): AppSettings {
   // All versions: validate, strip removed fields (e.g. fiscalYear from v1)
   return validateSettings(data, defaults);
 }
 
 // ---- Type guards ----
-
-function isValidYear(val: unknown): val is number {
-  return typeof val === 'number' && Number.isInteger(val) && val >= 2015 && val <= 2035;
-}
 
 function isNonNegativeInt(val: unknown): val is number {
   return typeof val === 'number' && Number.isInteger(val) && val >= 0;
