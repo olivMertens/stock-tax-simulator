@@ -357,23 +357,6 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
             />
           </div>
 
-          {/* Finnhub API key */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Clé API Finnhub (cours MSFT en temps réel)
-            </label>
-            <Input
-              type="password"
-              value={local.finnhubApiKey || ''}
-              onChange={(e) => update({ finnhubApiKey: e.target.value || undefined })}
-              className="w-72"
-              placeholder="Inscription gratuite sur finnhub.io"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Permet de récupérer le cours actuel de MSFT dans le simulateur de vente.
-            </p>
-          </div>
-
           {isDirty && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
               <AlertTriangle className="h-4 w-4 shrink-0" />

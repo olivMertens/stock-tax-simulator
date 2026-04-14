@@ -15,7 +15,7 @@ interface SaleSimulatorProps {
   onSimulate: (entries: SaleLotEntry[]) => void;
 }
 
-export const SaleSimulator = React.memo(function SaleSimulator({ lots, settings, onSimulate }: SaleSimulatorProps) {
+export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulate }: SaleSimulatorProps) {
   const [selectedLots, setSelectedLots] = React.useState<Record<string, { quantity: number; price: number }>>({});
   const [defaultPrice, setDefaultPrice] = React.useState<number>(0);
   const [originFilter, setOriginFilter] = React.useState<StockOrigin | 'all'>('all');
@@ -26,7 +26,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, settings,
     error: priceError,
     loading: fetchingPrice,
     fetchPrice: fetchLiveMsftPrice,
-  } = useMsftPrice(settings.finnhubApiKey);
+  } = useMsftPrice();
 
   // Sync EUR price to default price when fetched
   React.useEffect(() => {

@@ -100,7 +100,6 @@ export interface AppSettings {
   defaultPlanType: 'qualified_macron' | 'non_qualified';
   priorLosses: number;
   exchangeRate?: number;
-  finnhubApiKey?: string;
 }
 
 export interface SavedSimulation {

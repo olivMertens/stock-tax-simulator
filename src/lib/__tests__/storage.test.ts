@@ -33,7 +33,6 @@ describe('validateSettings', () => {
       taxShares: 3,
       otherTaxableIncome: 80000,
       priorLosses: 5000,
-      finnhubApiKey: 'abc123',
     };
     expect(validateSettings(valid, DEFAULTS)).toEqual(valid);
   });
@@ -59,10 +58,6 @@ describe('validateSettings', () => {
 
   it('falls back for invalid planType', () => {
     expect(validateSettings({ ...DEFAULTS, defaultPlanType: 'invalid' }, DEFAULTS).defaultPlanType).toBe('qualified_macron');
-  });
-
-  it('strips empty finnhubApiKey', () => {
-    expect(validateSettings({ ...DEFAULTS, finnhubApiKey: '' }, DEFAULTS).finnhubApiKey).toBeUndefined();
   });
 });
 

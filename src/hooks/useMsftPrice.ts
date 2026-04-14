@@ -11,27 +11,20 @@ interface MsftPriceResult {
 }
 
 /**
- * Hook to fetch the live MSFT stock price from Finnhub and convert to EUR via ECB rates.
+ * Hook to fetch the live MSFT stock price via the server-side API proxy
+ * and convert to EUR via ECB rates.
  */
-export function useMsftPrice(apiKey: string | undefined): MsftPriceResult {
+export function useMsftPrice(): MsftPriceResult {
   const [usdPrice, setUsdPrice] = useState<number | null>(null);
   const [eurPrice, setEurPrice] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchPrice = useCallback(async () => {
-    if (!apiKey) {
-      setError('Clé API Finnhub non configurée. Allez dans Paramètres.');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      // Note: query string auth required — X-Finnhub-Token header triggers a
-      // CORS preflight that Finnhub does not whitelist (no Access-Control-Allow-Headers).
-      const res = await fetch(
-        `https://finnhub.io/api/v1/quote?symbol=MSFT&token=${encodeURIComponent(apiKey)}`
-      );
+      const res = await fetch('/api/msft-quote');
       if (!res.ok) throw new Error('Erreur API');
       const data = await res.json();
       if (!data.c || data.c === 0) throw new Error('Prix indisponible');
@@ -50,11 +43,11 @@ export function useMsftPrice(apiKey: string | undefined): MsftPriceResult {
         setError(`Cours MSFT: ${formatUSD(usd)} — Taux BCE du jour indisponible, convertissez manuellement.`);
       }
     } catch {
-      setError('Impossible de récupérer le cours MSFT. Vérifiez votre clé API.');
+      setError('Impossible de récupérer le cours MSFT.');
     } finally {
       setLoading(false);
     }
-  }, [apiKey]);
+  }, []);
 
   return { usdPrice, eurPrice, error, loading, fetchPrice };
 }

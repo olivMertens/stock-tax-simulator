@@ -36,7 +36,6 @@ export function validateSettings(raw: unknown, defaults: AppSettings): AppSettin
       : defaults.defaultPlanType,
     priorLosses: isNonNegativeNumber(obj.priorLosses) ? obj.priorLosses as number : defaults.priorLosses,
     exchangeRate: isPositiveNumber(obj.exchangeRate) ? obj.exchangeRate as number : undefined,
-    finnhubApiKey: typeof obj.finnhubApiKey === 'string' && obj.finnhubApiKey.length > 0 ? obj.finnhubApiKey : undefined,
   };
 }
 
