@@ -1,6 +1,14 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let cached: { data: unknown; timestamp: number } | null = null;
+
 export async function msftQuote(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  // Serve from cache if fresh
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return { status: 200, jsonBody: cached.data };
+  }
+
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) {
     context.error('FINNHUB_API_KEY is not configured');
@@ -17,6 +25,7 @@ export async function msftQuote(req: HttpRequest, context: InvocationContext): P
     }
 
     const data = await res.json();
+    cached = { data, timestamp: Date.now() };
     return { status: 200, jsonBody: data };
   } catch (err) {
     context.error('Failed to fetch Finnhub quote:', err);
