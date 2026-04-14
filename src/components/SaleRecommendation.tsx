@@ -17,13 +17,6 @@ interface SaleRecommendationProps {
 
 type SortKey = 'rank' | 'origin' | 'date' | 'rate' | 'net';
 
-function ratingColor(rate: number): string {
-  if (rate < 20) return 'bg-green-100 text-green-800 border-green-300';
-  if (rate < 35) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-  if (rate < 50) return 'bg-orange-100 text-orange-800 border-orange-300';
-  return 'bg-red-100 text-red-800 border-red-300';
-}
-
 function ratingLabel(rate: number): string {
   if (rate < 20) return 'Excellent';
   if (rate < 35) return 'Bon';

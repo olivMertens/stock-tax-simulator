@@ -112,7 +112,7 @@ export function Portfolio({ lots, onLotsChange }: PortfolioProps) {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} (${((percent ?? 0) * 100).toFixed(0)}%)`}>
                     {pieData.map((_, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
