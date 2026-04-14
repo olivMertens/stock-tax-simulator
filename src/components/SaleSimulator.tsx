@@ -18,6 +18,7 @@ interface SaleSimulatorProps {
 export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulate }: SaleSimulatorProps) {
   const [selectedLots, setSelectedLots] = React.useState<Record<string, { quantity: number; price: number }>>({});
   const [defaultPrice, setDefaultPrice] = React.useState<number>(0);
+  const [priceInput, setPriceInput] = React.useState<string>('0');
   const [originFilter, setOriginFilter] = React.useState<StockOrigin | 'all'>('all');
 
   const {
@@ -31,9 +32,20 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
   // Sync EUR price to default price when fetched
   React.useEffect(() => {
     if (livePriceEur !== null) {
-      setDefaultPrice(Math.round(livePriceEur * 100) / 100);
+      const rounded = Math.round(livePriceEur * 100) / 100;
+      setDefaultPrice(rounded);
+      setPriceInput(String(rounded));
     }
   }, [livePriceEur]);
+
+  // Debounce priceInput -> defaultPrice (300ms)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      const parsed = parseFloat(priceInput);
+      if (!isNaN(parsed) && parsed >= 0) setDefaultPrice(parsed);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [priceInput]);
 
   const toggleLot = (lot: StockLot) => {
     setSelectedLots((prev) => {
@@ -156,8 +168,8 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                 type="number"
                 step="0.01"
                 min="0"
-                value={defaultPrice || ''}
-                onChange={(e) => setDefaultPrice(parseFloat(e.target.value) || 0)}
+                value={priceInput}
+                onChange={(e) => setPriceInput(e.target.value)}
                 placeholder="Ex: 420.00"
                 className="w-40"
               />

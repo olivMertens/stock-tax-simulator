@@ -5,12 +5,29 @@ import { safeSetItem } from './storage';
 
 const ECB_API_BASE = 'https://data-api.ecb.europa.eu/service/data/EXR';
 const RATE_CACHE_KEY = 'ecbRateCache';
+const CACHE_EXPIRY_KEY = 'ecbRateCacheTimestamp';
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const RECENT_DAYS = 7; // dates within this range are considered "recent"
 
 type RateCache = Record<string, number>; // "YYYY-MM-DD" -> EUR/USD rate
 
+/**
+ * Load cached rates, expiring recent entries older than 24h.
+ */
 function loadCache(): RateCache {
   try {
-    return JSON.parse(localStorage.getItem(RATE_CACHE_KEY) || '{}');
+    const cache: RateCache = JSON.parse(localStorage.getItem(RATE_CACHE_KEY) || '{}');
+    const savedAt = Number(localStorage.getItem(CACHE_EXPIRY_KEY) || '0');
+    const isStale = Date.now() - savedAt > CACHE_TTL_MS;
+
+    if (isStale) {
+      // Only expire recent dates; historical dates stay cached
+      const cutoff = formatDateKey(new Date(Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000));
+      for (const key of Object.keys(cache)) {
+        if (key >= cutoff) delete cache[key];
+      }
+    }
+    return cache;
   } catch {
     return {};
   }
@@ -18,6 +35,7 @@ function loadCache(): RateCache {
 
 function saveCache(cache: RateCache): void {
   safeSetItem(RATE_CACHE_KEY, JSON.stringify(cache));
+  safeSetItem(CACHE_EXPIRY_KEY, String(Date.now()));
 }
 
 export function formatDateKey(date: Date): string {

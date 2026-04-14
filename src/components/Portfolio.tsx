@@ -134,6 +134,14 @@ export function Portfolio({ lots, onLotsChange }: PortfolioProps) {
         </Alert>
       )}
 
+      {/* Origin codes legend */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500">
+        <span><Badge variant="default">SP</Badge> ESPP — Employee Stock Purchase Plan</span>
+        <span><Badge variant="default">DO</Badge> Stock Award — RSU / Discretionary Award</span>
+        <span><Badge variant="default">FM</Badge> AGA Macron — Attribution gratuite qualifiée (post-2018)</span>
+        <span><Badge variant="default">FQ</Badge> AGA pré-Macron — Attribution gratuite qualifiée (pré-2018)</span>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <Select value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value as StockOrigin | 'all')} className="w-40">
