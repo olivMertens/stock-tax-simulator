@@ -27,6 +27,7 @@ function makeResult(overrides: Partial<TaxSimulationResult> = {}): TaxSimulation
       ir: 640,
       ps: 860,
       deductibleCSG: 340,
+      holdingAbatement: 0,
       total: 1500,
       remainingLosses: 0,
       netLoss: 0,
