@@ -151,15 +151,42 @@ function parseSalesAmount(amountStr: string): number {
   return isNaN(num) ? 0 : num;
 }
 
-const SALES_HEADER_MARKERS = ["Date d'acquisition", 'Date d\'acquisition', 'Date de vente'];
+const SALES_HEADER_MARKERS = ["Date d'acquisition", 'Date d\'acquisition', 'Date de vente', 'Produits'];
 
-function isSalesHeaderRow(row: string[]): boolean {
-  const joined = row.join(',');
-  return SALES_HEADER_MARKERS.some((marker) => joined.includes(marker)) && joined.includes('Produits');
+function isSalesHeaderOrJunkLine(line: string): boolean {
+  // Header line (may contain HTML tags from broker export)
+  if (SALES_HEADER_MARKERS.filter((m) => line.includes(m)).length >= 2) return true;
+  if (/<[^>]+>/.test(line)) return true; // contains HTML tags
+  // Footer
+  if (line.includes('Les valeurs sont affichées en')) return true;
+  return false;
+}
+
+/**
+ * Pre-process raw sales CSV text: strip header/footer lines (which may contain
+ * HTML and problematic quoting that breaks PapaParse), then return clean lines.
+ */
+function preprocessSalesCsv(csvText: string): string {
+  const lines = csvText.split(/\r?\n/);
+  const cleanLines: string[] = [];
+
+  for (const raw of lines) {
+    // Strip leading/trailing quotes wrapping entire lines
+    let line = raw.replace(/^"+|"+$/g, '');
+    line = line.trim();
+
+    if (!line) continue;
+    if (isSalesHeaderOrJunkLine(line)) continue;
+
+    cleanLines.push(line);
+  }
+
+  return cleanLines.join('\n');
 }
 
 export function parseSalesCsvFile(csvText: string, currency: ImportCurrency = 'USD'): SoldLot[] {
-  const result = Papa.parse(csvText, {
+  const cleaned = preprocessSalesCsv(csvText);
+  const result = Papa.parse(cleaned, {
     header: false,
     skipEmptyLines: true,
   });
@@ -168,10 +195,6 @@ export function parseSalesCsvFile(csvText: string, currency: ImportCurrency = 'U
   let id = 0;
 
   for (const row of result.data as string[][]) {
-    // Skip header row (may contain HTML tags)
-    if (isSalesHeaderRow(row)) continue;
-    // Skip footer lines
-    if (row.join(',').includes('Les valeurs sont affichées en')) continue;
     // Skip empty rows
     if (!row[0] || !row[0].trim()) continue;
 

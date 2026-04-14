@@ -221,4 +221,23 @@ describe('parseSalesCsvFile', () => {
     const lots = parseSalesCsvFile(csv, 'EUR');
     expect(lots[0].gainLoss).toBeCloseTo(-208.85);
   });
+
+  it('parses real broker export with HTML header and wrapping quotes', () => {
+    const realCsv = `"Date d'acquisition,Quantité,<span style=""color: rgb(0, 0, 51)"; background-color: rgb(255, 255, 255);">Date de vente ou de transfert</span>,Produits,Prix de revient,Plus-value/Moins-value,Durée
+MAR/17/2025,0.4550,MAR/17/2025,177.79,175.98,1.81,SHORT
+FEB/28/2025,0.6350,MAR/17/2025,248.14,249.40,-1.26,SHORT
+MAR/17/2025,3.3560,MAR/17/2025,1311.22,1298.00,13.22,SHORT
+JUN/17/2024,4.0420,MAR/17/2025,1579.49,1788.34,-208.85,SHORT
+,
+Les valeurs sont affichées en USD
+"`;
+    const lots = parseSalesCsvFile(realCsv, 'USD');
+    expect(lots).toHaveLength(4);
+    expect(lots[0].quantity).toBeCloseTo(0.455);
+    expect(lots[0].proceedsUsd).toBeCloseTo(177.79);
+    expect(lots[3].proceedsUsd).toBeCloseTo(1579.49);
+    expect(lots[3].costBasisUsd).toBeCloseTo(1788.34);
+    expect(lots[1].acquisitionDate.getMonth()).toBe(1); // February
+    expect(lots[3].acquisitionDate.getMonth()).toBe(5); // June
+  });
 });
