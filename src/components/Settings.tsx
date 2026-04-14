@@ -88,21 +88,34 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
 
   const isDirty = JSON.stringify(local) !== JSON.stringify(settings);
 
+  const [pdfOpen, setPdfOpen] = React.useState(false);
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* Tax notice PDF upload */}
+    <div className="space-y-6 max-w-2xl pb-20">
+      {/* Tax notice PDF upload — collapsible */}
       <Card>
-        <CardHeader>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={() => setPdfOpen((o) => !o)}
+        >
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
             Importer un avis d'imposition
+            <span className="ml-auto text-gray-400 text-xs font-normal">{pdfOpen ? '▲ Replier' : '▼ Déplier'}</span>
           </CardTitle>
-          <CardDescription>
-            Uploadez votre avis d'imposition (PDF de impots.gouv.fr) pour pré-remplir automatiquement vos paramètres.
-            Le fichier est traité localement dans votre navigateur et n'est jamais envoyé à un serveur.
-          </CardDescription>
+          {!pdfOpen && (
+            <CardDescription>
+              Uploadez votre avis d'imposition (PDF de impots.gouv.fr) pour pré-remplir automatiquement vos paramètres.
+            </CardDescription>
+          )}
+          {pdfOpen && (
+            <CardDescription>
+              Uploadez votre avis d'imposition (PDF de impots.gouv.fr) pour pré-remplir automatiquement vos paramètres.
+              Le fichier est traité localement dans votre navigateur et n'est jamais envoyé à un serveur.
+            </CardDescription>
+          )}
         </CardHeader>
-        <CardContent>
+        {pdfOpen && <CardContent>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -198,7 +211,7 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
               </Alert>
             </div>
           )}
-        </CardContent>
+        </CardContent>}
       </Card>
 
       <Card>
@@ -211,121 +224,122 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
             Configurez vos paramètres pour une estimation plus précise.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Fiscal year */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Année fiscale</label>
-            <Input
-              type="number"
-              value={local.fiscalYear}
-              min="2015"
-              max="2030"
-              onChange={(e) => {
-                const v = parseInt(e.target.value);
-                if (v && v >= 2015 && v <= 2030) update({ fiscalYear: v });
-              }}
-              className="w-32"
-            />
-          </div>
-
-          {/* Family status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Situation familiale</label>
-            <Select
-              value={local.familyStatus}
-              onChange={(e) => update({ familyStatus: e.target.value as FamilyStatus })}
-              className="w-64"
-            >
-              <option value="single">Célibataire</option>
-              <option value="couple">Couple (marié / pacsé)</option>
-            </Select>
-          </div>
-
-          {/* Children */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre d'enfants à charge</label>
-            <Input
-              type="number"
-              min="0"
-              max="20"
-              value={local.numberOfChildren}
-              onChange={(e) => update({ numberOfChildren: Math.max(0, parseInt(e.target.value) || 0) })}
-              className="w-32"
-            />
-          </div>
-
-          {/* Tax shares */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre de parts fiscales
-              <span className="text-gray-400 font-normal ml-2">
-                {local.taxSharesManual ? '(manuel)' : '(calculé automatiquement)'}
-              </span>
-            </label>
-            <div className="flex items-center gap-3">
+        <CardContent className="space-y-5">
+          {/* Row 1: Fiscal year + Family status */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Année fiscale</label>
               <Input
                 type="number"
-                step="0.5"
-                min="1"
-                max="30"
-                value={local.taxShares}
-                onChange={(e) => update({ taxShares: Math.max(1, parseFloat(e.target.value) || 1), taxSharesManual: true })}
+                value={local.fiscalYear}
+                min="2015"
+                max="2030"
+                onChange={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (v && v >= 2015 && v <= 2030) update({ fiscalYear: v });
+                }}
                 className="w-32"
               />
-              {local.taxSharesManual && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    update({
-                      taxSharesManual: false,
-                      taxShares: calculateTaxShares(local.familyStatus, local.numberOfChildren),
-                    })
-                  }
-                >
-                  Recalculer
-                </Button>
-              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Situation familiale</label>
+              <Select
+                value={local.familyStatus}
+                onChange={(e) => update({ familyStatus: e.target.value as FamilyStatus })}
+              >
+                <option value="single">Célibataire</option>
+                <option value="couple">Couple (marié / pacsé)</option>
+              </Select>
             </div>
           </div>
 
-          {/* Other taxable income */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Revenu imposable hors actions (salaire net imposable annuel, €)
-            </label>
-            <Input
-              type="number"
-              step="100"
-              min="0"
-              value={local.otherTaxableIncome}
-              onChange={(e) => update({ otherTaxableIncome: Math.max(0, parseFloat(e.target.value) || 0) })}
-              className="w-48"
-              placeholder="Ex: 80000"
-            />
+          {/* Row 2: Children + Tax shares */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre d'enfants à charge</label>
+              <Input
+                type="number"
+                min="0"
+                max="20"
+                value={local.numberOfChildren}
+                onChange={(e) => update({ numberOfChildren: Math.max(0, parseInt(e.target.value) || 0) })}
+                className="w-32"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parts fiscales
+                <span className="text-gray-400 font-normal ml-1 text-xs">
+                  {local.taxSharesManual ? '(manuel)' : '(auto)'}
+                </span>
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  step="0.5"
+                  min="1"
+                  max="30"
+                  value={local.taxShares}
+                  onChange={(e) => update({ taxShares: Math.max(1, parseFloat(e.target.value) || 1), taxSharesManual: true })}
+                  className="w-24"
+                />
+                {local.taxSharesManual && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      update({
+                        taxSharesManual: false,
+                        taxShares: calculateTaxShares(local.familyStatus, local.numberOfChildren),
+                      })
+                    }
+                  >
+                    Recalculer
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Default plan type for DO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Régime par défaut des Stock Awards (DO)
-            </label>
-            <Select
-              value={local.defaultPlanType}
-              onChange={(e) =>
-                update({ defaultPlanType: e.target.value as 'qualified_macron' | 'non_qualified' })
-              }
-              className="w-64"
-            >
-              <option value="qualified_macron">Qualifié (AGA)</option>
-              <option value="non_qualified">Non qualifié</option>
-            </Select>
-            <p className="text-xs text-gray-400 mt-1">
-              Appliqué à l'import pour les lots DO. Modifiable lot par lot ensuite.
-            </p>
+          {/* Row 3: Income + Plan type */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Revenu imposable hors actions (€/an)
+              </label>
+              <Input
+                type="number"
+                step="100"
+                min="0"
+                value={local.otherTaxableIncome}
+                onChange={(e) => update({ otherTaxableIncome: Math.max(0, parseFloat(e.target.value) || 0) })}
+                className="w-full"
+                placeholder="Ex: 80000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Régime Stock Awards (DO)
+              </label>
+              <Select
+                value={local.defaultPlanType}
+                onChange={(e) =>
+                  update({ defaultPlanType: e.target.value as 'qualified_macron' | 'non_qualified' })
+                }
+              >
+                <option value="qualified_macron">Qualifié (AGA)</option>
+                <option value="non_qualified">Non qualifié</option>
+              </Select>
+              <p className="text-xs text-gray-400 mt-1">
+                Appliqué à l'import pour les lots DO.
+              </p>
+            </div>
           </div>
 
-          {/* Prior losses */}
+          {/* Prior losses — single row */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Moins-values reportables des années antérieures (€)
@@ -340,20 +354,26 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
               placeholder="0"
             />
           </div>
-
-          {isDirty && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              Vous avez des modifications non enregistrées.
-            </div>
-          )}
-
-          <Button onClick={handleSave} className="gap-2">
-            <Save className="h-4 w-4" />
-            {saved ? 'Enregistré !' : isDirty ? 'Enregistrer *' : 'Enregistrer'}
-          </Button>
         </CardContent>
       </Card>
+
+      {/* Sticky save footer */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white/95 backdrop-blur-sm shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
+        <div className="max-w-2xl mx-auto px-6 py-3 flex items-center gap-4">
+          {isDirty && (
+            <div className="flex items-center gap-2 text-sm text-amber-700">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              Modifications non enregistrées
+            </div>
+          )}
+          <div className="ml-auto">
+            <Button onClick={handleSave} className="gap-2">
+              <Save className="h-4 w-4" />
+              {saved ? 'Enregistré !' : isDirty ? 'Enregistrer *' : 'Enregistrer'}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
