@@ -22,9 +22,13 @@ function parseFidelityDate(dateStr: string): Date | undefined {
 
 function parseFidelityAmount(amountStr: string): number {
   if (!amountStr || !amountStr.trim()) return 0;
-  // Remove spaces (thousand separators), the last 2 digits are cents
   const cleaned = amountStr.trim().replace(/\s/g, '');
   if (!cleaned || isNaN(Number(cleaned))) return 0;
+  // If the value contains a decimal point, it's already in dollars
+  if (cleaned.includes('.')) {
+    return parseFloat(cleaned);
+  }
+  // Otherwise, assume integer centimes (legacy format)
   const num = parseInt(cleaned, 10);
   return num / 100;
 }
