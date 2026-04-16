@@ -135,7 +135,7 @@ describe('getTaxConfig', () => {
 
   it('returns 2025 config with updated brackets and retroactive PS', () => {
     const config = getTaxConfig(2025);
-    expect(config.brackets[0].limit).toBe(11497);
+    expect(config.brackets[0].limit).toBe(11600);
     expect(config.psPatrimoine).toBe(0.186); // retroactive CSG increase
   });
 

@@ -52,10 +52,10 @@ const TAX_CONFIG_2024: TaxConfig = {
 const TAX_CONFIG_2025: TaxConfig = {
   ...TAX_CONFIG_2024,
   brackets: [
-    { limit: 11497, rate: 0 },
-    { limit: 29315, rate: 0.11 },
-    { limit: 83823, rate: 0.30 },
-    { limit: 180294, rate: 0.41 },
+    { limit: 11600, rate: 0 },
+    { limit: 29579, rate: 0.11 },
+    { limit: 84577, rate: 0.30 },
+    { limit: 181917, rate: 0.41 },
     { limit: Infinity, rate: 0.45 },
   ],
   qfCapPerHalfShare: 1791,
