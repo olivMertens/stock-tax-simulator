@@ -6,7 +6,7 @@ let cached: { data: unknown; timestamp: number } | null = null;
 export async function msftQuote(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   // Serve from cache if fresh
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return { status: 200, jsonBody: cached.data };
+    return { status: 200, jsonBody: { ...cached.data as Record<string, unknown>, _cachedAt: cached.timestamp } };
   }
 
   const apiKey = process.env.FINNHUB_API_KEY;
@@ -26,7 +26,7 @@ export async function msftQuote(req: HttpRequest, context: InvocationContext): P
 
     const data = await res.json();
     cached = { data, timestamp: Date.now() };
-    return { status: 200, jsonBody: data };
+    return { status: 200, jsonBody: { ...data, _cachedAt: cached.timestamp } };
   } catch (err) {
     context.error('Failed to fetch Finnhub quote:', err);
     return { status: 502, jsonBody: { error: 'Failed to reach Finnhub API' } };

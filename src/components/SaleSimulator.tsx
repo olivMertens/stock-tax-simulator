@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Alert } from './ui/alert';
 import { Badge } from './ui/badge';
-import { Calculator, ShoppingCart, RefreshCw, Filter } from 'lucide-react';
+import { Calculator, ShoppingCart, Filter, TrendingUp } from 'lucide-react';
 import type { StockLot, SaleLotEntry, AppSettings, StockOrigin } from '../lib/types';
 import { formatEUR, formatUSD, formatDate, originLabel } from '../lib/utils';
 import { useMsftPrice } from '../hooks/useMsftPrice';
@@ -24,9 +24,9 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
   const {
     usdPrice: livePriceUsd,
     eurPrice: livePriceEur,
+    lastUpdated,
     error: priceError,
     loading: fetchingPrice,
-    fetchPrice: fetchLiveMsftPrice,
   } = useMsftPrice();
 
   // Sync EUR price to default price when fetched
@@ -163,6 +163,27 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {fetchingPrice && (
+            <p className="text-sm text-gray-500 mb-3">Chargement du cours MSFT…</p>
+          )}
+          {livePriceUsd !== null && livePriceEur !== null && (
+            <div className="flex items-center gap-3 flex-wrap mb-3 p-2.5 bg-green-50 rounded-md border border-green-200">
+              <TrendingUp className="h-4 w-4 text-green-600 shrink-0" />
+              <span className="text-sm text-green-800">
+                Cours MSFT : {formatUSD(livePriceUsd)} → <strong>{formatEUR(livePriceEur)}</strong>
+              </span>
+              {lastUpdated && (
+                <span className="text-xs text-green-600">
+                  (mis à jour à {lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})
+                </span>
+              )}
+            </div>
+          )}
+          {priceError && (
+            <p className="mb-3 text-xs text-amber-700 bg-amber-50 p-2 rounded">
+              {priceError}
+            </p>
+          )}
           <div className="flex items-end gap-3 flex-wrap">
             <div>
               <label className="text-sm text-gray-600 block mb-1">Prix de vente unitaire (€)</label>
@@ -179,27 +200,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
             <Button variant="outline" size="sm" onClick={applyDefaultPrice} disabled={defaultPrice <= 0}>
               Appliquer à tous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchLiveMsftPrice}
-              disabled={fetchingPrice}
-              className="gap-1.5"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${fetchingPrice ? 'animate-spin' : ''}`} />
-              Cours MSFT actuel
-            </Button>
           </div>
-          {livePriceUsd !== null && livePriceEur !== null && (
-            <p className="mt-2 text-xs text-green-700 bg-green-50 p-2 rounded">
-              Cours MSFT : {formatUSD(livePriceUsd)} → <strong>{formatEUR(livePriceEur)}</strong> (taux BCE du jour)
-            </p>
-          )}
-          {priceError && (
-            <p className="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded">
-              {priceError}
-            </p>
-          )}
         </CardContent>
       </Card>
 
@@ -211,7 +212,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
 
       {hasInvalidPrice && (
         <Alert variant="destructive">
-          Renseignez un prix de vente pour tous les lots sélectionnés, ou cliquez <strong>Cours MSFT actuel</strong> puis <strong>Appliquer à tous</strong>.
+          Renseignez un prix de vente pour tous les lots sélectionnés, ou cliquez <strong>Utiliser ce cours</strong> puis <strong>Appliquer à tous</strong>.
         </Alert>
       )}
 

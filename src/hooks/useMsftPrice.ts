@@ -1,22 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { fetchECBRates, convertUsdToEur, formatDateKey } from '../lib/ecb-rates';
 import { formatUSD } from '../lib/utils';
 
 interface MsftPriceResult {
   usdPrice: number | null;
   eurPrice: number | null;
+  lastUpdated: Date | null;
   error: string | null;
   loading: boolean;
-  fetchPrice: () => Promise<void>;
 }
 
 /**
- * Hook to fetch the live MSFT stock price via the server-side API proxy
- * and convert to EUR via ECB rates.
+ * Hook that auto-fetches the cached MSFT stock price from the server-side API
+ * and converts to EUR via ECB rates. The server controls Finnhub rate-limiting.
  */
 export function useMsftPrice(): MsftPriceResult {
   const [usdPrice, setUsdPrice] = useState<number | null>(null);
   const [eurPrice, setEurPrice] = useState<number | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +31,10 @@ export function useMsftPrice(): MsftPriceResult {
       if (!data.c || data.c === 0) throw new Error('Prix indisponible');
       const usd = data.c as number;
       setUsdPrice(usd);
+
+      if (data._cachedAt) {
+        setLastUpdated(new Date(data._cachedAt));
+      }
 
       // Convert to EUR via ECB rate
       const today = new Date();
@@ -49,5 +54,10 @@ export function useMsftPrice(): MsftPriceResult {
     }
   }, []);
 
-  return { usdPrice, eurPrice, error, loading, fetchPrice };
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetchPrice();
+  }, [fetchPrice]);
+
+  return { usdPrice, eurPrice, lastUpdated, error, loading };
 }
