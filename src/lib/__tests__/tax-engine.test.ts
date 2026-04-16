@@ -92,7 +92,16 @@ describe('calculateLotTax', () => {
   });
 
   describe('ESPP (SP)', () => {
-    it('has no acquisition gain, only capital gain', () => {
+    it('uses FMV (not discounted cost basis) for capital gain', () => {
+      // costBasis = 90 (discounted), FMV = 100 (before 10% discount)
+      const lot = makeLot({ origin: 'SP', costBasisPerShare: 90, esppFmvPerShare: 100, planType: 'non_qualified' });
+      const result = calculateLotTax(makeEntry(lot, 10, 400));
+      expect(result.acquisitionGain).toBe(0);
+      expect(result.capitalGain).toBe(10 * (400 - 100)); // 3,000 (not 3,100)
+      expect(result.proceeds).toBe(10 * 400); // 4,000
+    });
+
+    it('falls back to costBasis when FMV is not set', () => {
       const lot = makeLot({ origin: 'SP', costBasisPerShare: 200, planType: 'non_qualified' });
       const result = calculateLotTax(makeEntry(lot, 10, 400));
       expect(result.acquisitionGain).toBe(0);
@@ -100,8 +109,8 @@ describe('calculateLotTax', () => {
       expect(result.proceeds).toBe(10 * 400); // 4,000
     });
 
-    it('handles capital loss', () => {
-      const lot = makeLot({ origin: 'SP', costBasisPerShare: 500, planType: 'non_qualified' });
+    it('handles capital loss with FMV', () => {
+      const lot = makeLot({ origin: 'SP', costBasisPerShare: 450, esppFmvPerShare: 500, planType: 'non_qualified' });
       const result = calculateLotTax(makeEntry(lot, 10, 400));
       expect(result.capitalGain).toBe(10 * (400 - 500)); // -1,000
       expect(result.acquisitionGain).toBe(0);

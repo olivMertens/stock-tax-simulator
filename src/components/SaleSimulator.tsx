@@ -296,8 +296,11 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                   const isSelected = !!selectedLots[lot.id];
                   const sel = selectedLots[lot.id];
                   const notAvailable = lot.availableForSaleDate && lot.availableForSaleDate > new Date();
+                  const refPrice = lot.origin === 'SP'
+                    ? (lot.esppFmvPerShare ?? lot.costBasisPerShare)
+                    : lot.costBasisPerShare;
                   const estimatedGain = isSelected
-                    ? sel.quantity * (sel.price - lot.costBasisPerShare)
+                    ? sel.quantity * (sel.price - refPrice)
                     : 0;
 
                   return (
@@ -324,7 +327,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                         </Badge>
                       </td>
                       <td className="p-3 text-right">{lot.quantity.toLocaleString('fr-FR', { maximumFractionDigits: 4 })}</td>
-                      <td className="p-3 text-right">{formatEUR(lot.costBasisPerShare)}</td>
+                      <td className="p-3 text-right">{formatEUR(lot.origin === 'SP' ? (lot.esppFmvPerShare ?? lot.costBasisPerShare) : lot.costBasisPerShare)}</td>
                       <td className="p-3 text-right">
                         {isSelected ? (
                           <div className="ml-auto w-fit flex items-center gap-1">

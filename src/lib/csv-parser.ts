@@ -95,6 +95,8 @@ export function parseCsvFile(csvText: string): StockLot[] {
       totalCostBasis: 0,
       currentValue: 0,
       unrealizedGainLoss: 0,
+      // ESPP: FMV = cost basis before 10% discount
+      esppFmvPerShareUsd: origin === 'SP' ? costBasisPerShare / 0.90 : undefined,
       // Store raw USD values
       costBasisPerShareUsd: costBasisPerShare,
       totalCostBasisUsd: totalCostBasis,

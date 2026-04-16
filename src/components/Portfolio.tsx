@@ -67,6 +67,7 @@ export function Portfolio({ lots, onLotsChange }: PortfolioProps) {
 
   const hasDOLots = lots.some((l) => l.origin === 'DO');
   const hasUsdImport = lots.some((l) => l.importCurrency === 'USD');
+  const hasEsppLots = lots.some((l) => l.origin === 'SP');
 
   return (
     <div className="space-y-6">
@@ -179,6 +180,12 @@ export function Portfolio({ lots, onLotsChange }: PortfolioProps) {
                       <th className="text-right p-3 font-medium">Taux BCE</th>
                     </>
                   )}
+                  {hasEsppLots && (
+                    <th className="text-right p-3 font-medium">
+                      FMV acq.
+                      <Tooltip content="Valeur de marché à la date d'achat ESPP (avant décote 10 %). Utilisée comme prix de revient fiscal pour le calcul de la plus-value de cession." />
+                    </th>
+                  )}
                   <th className="text-right p-3 font-medium">Valeur</th>
                   <th className="text-right p-3 font-medium">PV/MV</th>
                   <th className="text-center p-3 font-medium">Origine</th>
@@ -207,6 +214,11 @@ export function Portfolio({ lots, onLotsChange }: PortfolioProps) {
                             {lot.eurUsdRate ? lot.eurUsdRate.toFixed(4) : '—'}
                           </td>
                         </>
+                      )}
+                      {hasEsppLots && (
+                        <td className="p-3 text-right">
+                          {lot.origin === 'SP' ? formatEUR(lot.esppFmvPerShare ?? 0) : '—'}
+                        </td>
                       )}
                       <td className="p-3 text-right">{formatEUR(lot.currentValue)}</td>
                       <td className={`p-3 text-right ${lot.unrealizedGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>

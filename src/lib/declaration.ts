@@ -27,7 +27,10 @@ export function generateDeclaration(
 
   // Form 2074 lines
   const form2074Lines: Form2074Line[] = lots.map((entry) => {
-    const gainLoss = entry.quantitySold * (entry.salePricePerShare - entry.lot.costBasisPerShare);
+    const effectiveCostBasis = entry.lot.origin === 'SP'
+      ? (entry.lot.esppFmvPerShare ?? entry.lot.costBasisPerShare)
+      : entry.lot.costBasisPerShare;
+    const gainLoss = entry.quantitySold * (entry.salePricePerShare - effectiveCostBasis);
     const originLabels: Record<string, string> = {
       SP: 'ESPP',
       DO: 'Stock Award',
@@ -39,7 +42,7 @@ export function generateDeclaration(
       quantity: entry.quantitySold,
       origin: originLabels[entry.lot.origin] || entry.lot.origin,
       salePrice: entry.salePricePerShare,
-      costBasis: entry.lot.costBasisPerShare,
+      costBasis: effectiveCostBasis,
       gainLoss,
     };
   });

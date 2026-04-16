@@ -36,6 +36,9 @@ export function useEcbConversion(): EcbConversionResult {
         }
         const costBasisPerShare = convertUsdToEur(lot.costBasisPerShareUsd || 0, acqRate);
         const totalCostBasis = convertUsdToEur(lot.totalCostBasisUsd || 0, acqRate);
+        const esppFmvPerShare = lot.esppFmvPerShareUsd
+          ? convertUsdToEur(lot.esppFmvPerShareUsd, acqRate)
+          : undefined;
         const rateForCurrentValue = todayRate || acqRate;
         const currentValue = convertUsdToEur(lot.currentValueUsd || 0, rateForCurrentValue);
         const unrealizedGainLoss = currentValue - totalCostBasis;
@@ -44,6 +47,7 @@ export function useEcbConversion(): EcbConversionResult {
           eurUsdRate: acqRate,
           costBasisPerShare,
           totalCostBasis,
+          esppFmvPerShare,
           currentValue,
           unrealizedGainLoss,
         };

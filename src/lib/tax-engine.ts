@@ -47,7 +47,8 @@ export function calculateLotTax(entry: SaleLotEntry): LotTaxResult {
   }
 
   if (lot.origin === 'SP') {
-    const capitalGain = safeQty * (safePrice - lot.costBasisPerShare);
+    const acquisitionValue = lot.esppFmvPerShare ?? lot.costBasisPerShare;
+    const capitalGain = safeQty * (safePrice - acquisitionValue);
     return {
       lotId: lot.id,
       proceeds,

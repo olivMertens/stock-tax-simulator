@@ -64,6 +64,7 @@ function soldLotsToSaleEntries(soldLots: SoldLot[]): SaleLotEntry[] {
       holdingPeriod: sl.holdingPeriod,
       planType: sl.planType,
       importCurrency: sl.importCurrency,
+      esppFmvPerShare: sl.origin === 'SP' ? costBasisPerShare / 0.90 : undefined,
     };
     return {
       lot: syntheticLot,

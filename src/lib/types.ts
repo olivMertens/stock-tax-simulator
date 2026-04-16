@@ -19,6 +19,9 @@ export interface StockLot {
   origin: StockOrigin;
   holdingPeriod: HoldingPeriod;
   planType: PlanType;
+  // ESPP: Fair Market Value at acquisition (before 10% discount)
+  esppFmvPerShare?: number;
+  esppFmvPerShareUsd?: number;
   // USD import fields
   costBasisPerShareUsd?: number;
   totalCostBasisUsd?: number;
