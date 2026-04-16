@@ -98,42 +98,46 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
       </CardHeader>
       <CardContent>
         {/* Import mode selector */}
-        <div className="flex items-center gap-3 mb-4">
-          <label className="text-sm font-medium text-gray-700">Type d'import :</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                importMode === 'positions'
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-              onClick={() => { setImportMode('positions'); setFileName(null); setError(null); }}
-            >
-              <FileText className="h-3.5 w-3.5" />
+        <div className="flex w-full gap-3 mb-4">
+          <button
+            type="button"
+            className={`flex-1 flex flex-col items-center gap-1 px-4 py-3 rounded-lg border-2 transition-all ${
+              importMode === 'positions'
+                ? 'bg-primary/5 border-primary'
+                : 'bg-white border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => { setImportMode('positions'); setFileName(null); setError(null); }}
+          >
+            <span className={`flex items-center gap-2 text-sm font-medium ${
+              importMode === 'positions' ? 'text-primary' : 'text-gray-700'
+            }`}>
+              <FileText className="h-4 w-4" />
               Positions ouvertes
-            </button>
-            <button
-              type="button"
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                importMode === 'sales'
-                  ? 'bg-primary text-white border-primary'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-              onClick={() => { setImportMode('sales'); setFileName(null); setError(null); }}
-            >
-              <ShoppingCart className="h-3.5 w-3.5" />
+            </span>
+            <span className={`text-xs ${importMode === 'positions' ? 'text-primary/70' : 'text-gray-400'}`}>
+              Simuler une vente future
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`flex-1 flex flex-col items-center gap-1 px-4 py-3 rounded-lg border-2 transition-all ${
+              importMode === 'sales'
+                ? 'bg-primary/5 border-primary'
+                : 'bg-white border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => { setImportMode('sales'); setFileName(null); setError(null); }}
+          >
+            <span className={`flex items-center gap-2 text-sm font-medium ${
+              importMode === 'sales' ? 'text-primary' : 'text-gray-700'
+            }`}>
+              <ShoppingCart className="h-4 w-4" />
               Ventes effectuées
-            </button>
-          </div>
+            </span>
+            <span className={`text-xs ${importMode === 'sales' ? 'text-primary/70' : 'text-gray-400'}`}>
+              Calculer l{'\u2019'}impôt et déclarer
+            </span>
+          </button>
         </div>
-
-        {importMode === 'sales' ? (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-            Importez l'export CSV des « lots de transactions fermées » depuis votre broker.
-            Les ventes seront automatiquement traitées pour le calcul d'impôt et la déclaration.
-          </div>
-        ) : null}
 
         {/* USD requirement info */}
         <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
