@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Alert } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Select } from './ui/select';
 import { ShoppingCart, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react';
@@ -98,6 +99,12 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
               {formatEUR(totalGainLoss)}
             </p>
           </div>
+        </div>
+
+        <div className="mb-4">
+          <Alert>
+            L'export Fidelity des ventes effectuées ne contient pas l'origine des actions. Vérifiez et corrigez le <strong>type</strong> (ESPP, Stock Award, AGA…) et le <strong>régime fiscal</strong> de chaque lot ci-dessous.
+          </Alert>
         </div>
 
         {/* Table */}

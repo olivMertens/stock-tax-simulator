@@ -7,6 +7,7 @@ import { SaleSimulator } from './components/SaleSimulator';
 import { TaxCalculator } from './components/TaxCalculator';
 import { DeclarationGuide } from './components/DeclarationGuide';
 import { PfuVsBaremeComparator } from './components/PfuVsBaremeComparator';
+import { Dialog, DialogHeader, DialogFooter } from './components/ui/dialog';
 import { runSimulation } from './lib/tax-engine';
 import { loadVersionedSettings, safeSetItem } from './lib/storage';
 import type { StockLot, SoldLot, SaleLotEntry, AppSettings, TaxSimulationResult, TaxMode, SavedSimulation } from './lib/types';
@@ -139,6 +140,7 @@ function App() {
     return loadVersionedSettings('appSettings', DEFAULT_SETTINGS);
   });
   const [showRules, setShowRules] = React.useState(false);
+  const [showSalesImportDialog, setShowSalesImportDialog] = React.useState(false);
   const [savedSimulations, setSavedSimulations] = React.useState<SavedSimulation[]>(() => {
     try {
       const saved = localStorage.getItem('savedSimulations');
@@ -202,7 +204,7 @@ function App() {
     };
     const res = runSimulation(simulation);
     setResult(res);
-    setActiveTab('simulator');
+    setShowSalesImportDialog(true);
   }, [settings, taxMode]);
 
   const handleSoldLotsChange = React.useCallback((updatedSoldLots: SoldLot[]) => {
@@ -294,7 +296,7 @@ function App() {
   const tabs = [
     { id: 'settings' as const, step: 1, label: 'Paramètres', icon: SettingsIcon, done: settingsDone },
     { id: 'portfolio' as const, step: 2, label: 'Mon portefeuille', icon: Briefcase, done: portfolioDone },
-    { id: 'simulator' as const, step: 3, label: 'Simuler une vente', icon: Calculator, done: simulationDone },
+    { id: 'simulator' as const, step: 3, label: 'Cessions', icon: Calculator, done: simulationDone },
     { id: 'declaration' as const, step: 4, label: 'Ma déclaration', icon: FileText, done: simulationDone },
   ];
 
@@ -472,7 +474,7 @@ function App() {
                 ) : (
                   <>
                     <Calculator className="h-4 w-4" />
-                    Simuler une vente
+                    Aller aux cessions
                   </>
                 )}
               </button>
@@ -489,6 +491,36 @@ function App() {
 
       {/* Tax rules panel */}
       {showRules && <TaxRulesPanel onClose={() => setShowRules(false)} />}
+
+      {/* Sales import requalification dialog */}
+      <Dialog open={showSalesImportDialog} onClose={() => setShowSalesImportDialog(false)}>
+        <DialogHeader>
+          <p className="font-semibold text-gray-900 mb-2">Vérification nécessaire</p>
+          <p>
+            L'export Fidelity des ventes effectuées ne contient pas l'origine des actions. Vérifiez et corrigez le <strong>type</strong> (ESPP, Stock Award, AGA…) et le <strong>régime fiscal</strong> de chaque lot importé.
+          </p>
+        </DialogHeader>
+        <DialogFooter>
+          <button
+            onClick={() => {
+              setShowSalesImportDialog(false);
+              setActiveTab('portfolio');
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors"
+          >
+            Qualifier les lots
+          </button>
+          <button
+            onClick={() => {
+              setShowSalesImportDialog(false);
+              setActiveTab('simulator');
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            Aller aux cessions
+          </button>
+        </DialogFooter>
+      </Dialog>
 
       {/* Footer */}
       <footer className="border-t bg-white mt-12">
