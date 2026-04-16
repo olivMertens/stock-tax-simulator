@@ -55,7 +55,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
       } else {
         next[lot.id] = {
           quantity: lot.quantity,
-          price: defaultPrice || lot.costBasisPerShare,
+          price: defaultPrice,
         };
       }
       return next;
@@ -108,7 +108,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
           if (!next[lot.id]) {
             next[lot.id] = {
               quantity: lot.quantity,
-              price: defaultPrice || lot.costBasisPerShare,
+              price: defaultPrice,
             };
           }
         }
@@ -144,6 +144,8 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
     (sum, [, sel]) => sum + sel.quantity * sel.price,
     0
   );
+
+  const hasInvalidPrice = Object.values(selectedLots).some((sel) => sel.quantity > 0 && sel.price <= 0);
 
   const hasNonQualifiedDO = Object.keys(selectedLots).some((id) => {
     const lot = lots.find((l) => l.id === id);
@@ -204,6 +206,12 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
       {hasNonQualifiedDO && (
         <Alert variant="warning">
           <strong>Lots non qualifiés sélectionnés :</strong> Le gain d'acquisition est déjà inclus dans votre salaire imposable (case 1AJ). Vérifiez votre bulletin de paie.
+        </Alert>
+      )}
+
+      {hasInvalidPrice && (
+        <Alert variant="destructive">
+          Renseignez un prix de vente pour tous les lots sélectionnés, ou cliquez <strong>Cours MSFT actuel</strong> puis <strong>Appliquer à tous</strong>.
         </Alert>
       )}
 
@@ -327,14 +335,14 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                             min="0"
                             value={sel.price}
                             onChange={(e) => updatePrice(lot.id, parseFloat(e.target.value) || 0)}
-                            className="w-28 text-right h-8 text-sm"
+                            className={`w-28 text-right h-8 text-sm ${sel.price <= 0 ? 'border-red-400' : ''}`}
                           />
                         ) : (
                           '—'
                         )}
                       </td>
                       <td className={`p-3 text-right font-medium ${estimatedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {isSelected ? (estimatedGain >= 0 ? '+' : '') + formatEUR(estimatedGain) : '—'}
+                        {isSelected && sel.price > 0 ? (estimatedGain >= 0 ? '+' : '') + formatEUR(estimatedGain) : '—'}
                       </td>
                     </tr>
                   );
@@ -363,7 +371,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                 <strong>{formatEUR(estimatedProceeds)}</strong>
               </div>
             </div>
-            <Button onClick={handleSimulate} disabled={selectedCount === 0} className="gap-2">
+            <Button onClick={handleSimulate} disabled={selectedCount === 0 || hasInvalidPrice} className="gap-2">
               <Calculator className="h-4 w-4" />
               Simuler la vente
             </Button>
