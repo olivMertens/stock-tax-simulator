@@ -5,7 +5,6 @@ import {
   PS_ACTIVITE,
   CSG_DEDUCTIBLE,
   AGA_ABATEMENT_RATE_SHORT,
-  AGA_ABATEMENT_RATE_LONG,
   AGA_THRESHOLD,
   SALARY_CONTRIBUTION_RATE,
   type TaxConfig,
@@ -17,7 +16,7 @@ export function calculateAcquisitionGainTax(
   taxShares: number,
   planType: 'qualified_macron' | 'qualified_pre_macron',
   grantDate?: Date,
-  holdingPeriod: 'Short' | 'Long' = 'Short',
+  _holdingPeriod: 'Short' | 'Long' = 'Short',
   config?: TaxConfig
 ): AcquisitionGainTaxResult {
   if (totalAcquisitionGain <= 0) {
@@ -33,7 +32,6 @@ export function calculateAcquisitionGainTax(
   const csgDeductible = config?.csgDeductible ?? CSG_DEDUCTIBLE;
   const agaThreshold = config?.agaThreshold ?? AGA_THRESHOLD;
   const agaShort = config?.agaAbatementRateShort ?? AGA_ABATEMENT_RATE_SHORT;
-  const agaLong = config?.agaAbatementRateLong ?? AGA_ABATEMENT_RATE_LONG;
   const salaryRate = config?.salaryContributionRate ?? SALARY_CONTRIBUTION_RATE;
 
   // Pre-Macron regime (FQ)
