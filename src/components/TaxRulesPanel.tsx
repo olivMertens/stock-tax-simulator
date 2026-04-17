@@ -85,7 +85,7 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
           </Section>
 
           {/* ---- Qualifiés Macron I ---- */}
-          <Section title="Stock Awards qualifiés — Régime Macron I (attribution ≥ 01/01/2018)" defaultOpen>
+          <Section title="Stock Awards qualifiés — Régime Macron I (attribution ≥ 01/01/2018)">
             <p>
               Le gain d'acquisition est imposé <strong>à la cession</strong> (pas au vesting). Deux fractions :
             </p>
@@ -199,7 +199,7 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
           </Section>
 
           {/* ---- PV de cession ---- */}
-          <Section title="Plus/moins-values de cession" defaultOpen>
+          <Section title="Plus/moins-values de cession">
             <p>
               PV = prix de cession − prix d'acquisition (= valeur au vesting, converti en EUR au taux BCE du jour).
             </p>
