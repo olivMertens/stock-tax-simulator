@@ -197,9 +197,9 @@ describe('calculateAcquisitionGainTax', () => {
       expect(result.psBelow).toBeCloseTo(100000 * 0.186, 2);
     });
 
-    it('applies 65% abatement for Long holding', () => {
+    it('applies 50% abatement for Long holding too (fixed for Macron)', () => {
       const result = calculateAcquisitionGainTax(100000, 80000, 2, 'qualified_macron', undefined, 'Long');
-      expect(result.abatement50).toBe(65000); // 65% of 100k
+      expect(result.abatement50).toBe(50000); // 50% of 100k, same as Short
     });
   });
 
@@ -339,18 +339,20 @@ describe('runSimulation', () => {
     expect(result.netAmount).toBe(result.totalProceeds - result.totalTax);
   });
 
-  it('uses Long abatement if any lot has Long holding period', () => {
+  it('always uses 50% abatement for Macron regime regardless of holding period', () => {
     const shortLot = makeLot({ id: 'short', holdingPeriod: 'Short', costBasisPerShare: 250, origin: 'FM' });
     const longLot = makeLot({ id: 'long', holdingPeriod: 'Long', costBasisPerShare: 250, origin: 'FM' });
     const entriesShort = [makeEntry(shortLot, 10, 400)];
     const entriesMixed = [makeEntry(shortLot, 10, 400), makeEntry(longLot, 10, 400)];
 
-    runSimulation(makeSimulation(entriesShort));
+    const resultShort = runSimulation(makeSimulation(entriesShort));
     const resultMixed = runSimulation(makeSimulation(entriesMixed));
 
-    // Mixed should use Long abatement (65%) which is more favorable
-    // → lower total tax per unit of acquisition gain
-    expect(resultMixed.acquisitionGainTax.abatement50).toBeGreaterThan(0);
+    // Macron AGA: fixed 50% abatement on acquisition gain, no Long/Short distinction
+    const acqGainShort = resultShort.totalAcquisitionGain;
+    const acqGainMixed = resultMixed.totalAcquisitionGain;
+    expect(resultShort.acquisitionGainTax.abatement50).toBeCloseTo(acqGainShort * 0.5, 0);
+    expect(resultMixed.acquisitionGainTax.abatement50).toBeCloseTo(acqGainMixed * 0.5, 0);
   });
 
   it('applies prior losses to capital gains', () => {

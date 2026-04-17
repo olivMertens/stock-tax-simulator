@@ -45,8 +45,9 @@ export function calculateAcquisitionGainTax(
   const below = Math.min(totalAcquisitionGain, agaThreshold);
   const above = Math.max(0, totalAcquisitionGain - agaThreshold);
 
-  const abatementRate = holdingPeriod === 'Long' ? agaLong : agaShort;
-  const abatement = below * abatementRate;
+  // Macron AGA: fixed 50% abatement on acquisition gain (≤ 300k€),
+  // regardless of holding period (CGI art. 80 quaterdecies).
+  const abatement = below * agaShort;
   const taxableBelow = below - abatement;
   const psBelow = below * psPatrimoine;
 
