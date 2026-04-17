@@ -117,15 +117,71 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
           </Section>
 
           {/* ---- Qualifiés pré-Macron ---- */}
-          <Section title="Stock Awards qualifiés — Pré-Macron (28/09/2012 → 30/11/2016)">
+          {/* ---- Qualifiés transitoire 31/12/2016 → 31/12/2017 ---- */}
+          <Section title="Stock Awards qualifiés — Transitoire (31/12/2016 → 31/12/2017)">
+            <p>
+              Le gain d'acquisition est imposé <strong>à la cession</strong>. Deux fractions avec abattement pour durée de détention :
+            </p>
+            <div className="rounded bg-blue-50 p-3 space-y-2 text-sm">
+              <p className="font-semibold text-blue-900">Fraction ≤ 300 000 €</p>
+              <div className="space-y-1">
+                <Rate label="IR : barème progressif après abattement" value="0 → 45 %" />
+                <Rate label="Abattement (détention 2–8 ans depuis vesting)" value="50 %" />
+                <Rate label="Abattement (détention > 8 ans)" value="65 %" />
+                <Rate label="PS (patrimoine, sur montant brut)" value="18,6 %" />
+              </div>
+            </div>
+            <div className="rounded bg-amber-50 p-3 space-y-2 text-sm">
+              <p className="font-semibold text-amber-900">Fraction &gt; 300 000 €</p>
+              <div className="space-y-1">
+                <Rate label="IR : barème progressif (pas d'abattement)" value="0 → 45 %" />
+                <Rate label="Cotisations sociales (activité)" value="9,7 %" />
+                <Rate label="Contribution salariale" value="10 %" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              La durée de détention est appréciée entre la date d'acquisition définitive et la date de cession.
+            </p>
+            <p className="text-xs text-gray-500">
+              Déclaration : 2042-C — cases 1TZ (≤ 300k après abattement), 1WZ (abattement), 1TT (&gt; 300k).
+            </p>
+            <p className="text-xs text-gray-500">
+              Source : <a href="https://www.impots.gouv.fr/particulier/questions/mon-entreprise-ma-attribue-des-actions-gratuites-comment-sera-impose-le-gain" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">impots.gouv.fr</a>
+            </p>
+          </Section>
+
+          {/* ---- Qualifiés 08/08/2015 → 30/12/2016 ---- */}
+          <Section title="Stock Awards qualifiés — Pré-Macron (08/08/2015 → 30/12/2016)">
+            <p>
+              Le gain d'acquisition bénéficie des abattements pour durée de détention (comme les plus-values mobilières).
+            </p>
             <div className="rounded bg-gray-50 p-3 space-y-1">
-              <Rate label="Barème progressif (traitements & salaires)" value="0 → 45 %" />
-              <Rate label="PS (activité)" value="11,1 %" />
+              <Rate label="IR : barème progressif après abattement" value="0 → 45 %" />
+              <Rate label="Abattement (détention 2–8 ans depuis vesting)" value="50 %" />
+              <Rate label="Abattement (détention > 8 ans)" value="65 %" />
+              <Rate label="PS (patrimoine, sur montant brut)" value="18,6 %" />
+            </div>
+            <p className="text-xs text-gray-500">
+              Pas de contribution salariale. Déclaration : 2042-C — mêmes cases que les plus-values mobilières.
+            </p>
+            <p className="text-xs text-gray-500">
+              Source : <a href="https://www.impots.gouv.fr/particulier/questions/mon-entreprise-ma-attribue-des-actions-gratuites-comment-sera-impose-le-gain" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">impots.gouv.fr</a>
+            </p>
+          </Section>
+
+          {/* ---- Qualifiés 28/09/2012 → 07/08/2015 ---- */}
+          <Section title="Stock Awards qualifiés — Pré-Macron (28/09/2012 → 07/08/2015)">
+            <div className="rounded bg-gray-50 p-3 space-y-1">
+              <Rate label="Barème progressif (traitements & salaires, sans abattement)" value="0 → 45 %" />
+              <Rate label="PS (activité)" value="9,7 %" />
               <Rate label="Contribution salariale" value="10 %" />
               <Rate label="CEHR (si applicable)" value="3 % / 4 %" />
             </div>
             <p className="text-xs text-gray-500">
               Taux maximum global : ~66 %. Déclaration : 2042-C — cases 1TT/1UT.
+            </p>
+            <p className="text-xs text-gray-500">
+              Source : <a href="https://www.impots.gouv.fr/particulier/questions/mon-entreprise-ma-attribue-des-actions-gratuites-comment-sera-impose-le-gain" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">impots.gouv.fr</a>
             </p>
           </Section>
 
