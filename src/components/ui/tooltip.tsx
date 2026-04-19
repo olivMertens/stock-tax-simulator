@@ -10,34 +10,35 @@ interface TooltipProps {
 }
 
 export function Tooltip({ content, children, className }: TooltipProps) {
-  const [show, setShow] = React.useState(false);
   const triggerRef = React.useRef<HTMLSpanElement>(null);
   const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
   const id = React.useId();
 
-  React.useEffect(() => {
-    if (show && triggerRef.current) {
+  const showTooltip = () => {
+    if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       setPos({
-        top: rect.top + window.scrollY,
-        left: rect.left + rect.width / 2 + window.scrollX,
+        top: rect.top,
+        left: rect.left + rect.width / 2,
       });
     }
-  }, [show]);
+  };
+
+  const hideTooltip = () => setPos(null);
 
   return (
     <span
       ref={triggerRef}
       className={cn('relative inline-flex items-center', className)}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      onFocus={() => setShow(true)}
-      onBlur={() => setShow(false)}
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onFocus={showTooltip}
+      onBlur={hideTooltip}
       tabIndex={0}
-      aria-describedby={show ? id : undefined}
+      aria-describedby={pos ? id : undefined}
     >
       {children || <Info className="h-4 w-4 text-gray-400 cursor-help" />}
-      {show && pos && ReactDOM.createPortal(
+      {pos && ReactDOM.createPortal(
         <span
           id={id}
           role="tooltip"
