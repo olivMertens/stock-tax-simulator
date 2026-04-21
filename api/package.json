@@ -2,6 +2,9 @@
   "name": "stock-tax-simulator-api",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "main": "dist/functions/*.js",
   "scripts": {
     "build": "tsc",
@@ -11,6 +14,6 @@
     "@azure/functions": "^4.0.0"
   },
   "devDependencies": {
-    "typescript": "~5.6.0"
+    "typescript": "~6.0.2"
   }
 }

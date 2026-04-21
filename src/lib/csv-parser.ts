@@ -1,10 +1,20 @@
 import Papa from 'papaparse';
 import type { StockLot, StockOrigin, HoldingPeriod, PlanType, SoldLot } from './types';
 
+// Safety guard: reject CSV files with absurd row counts to prevent DoS.
+const MAX_CSV_ROWS = 5000;
+
 const MONTH_MAP: Record<string, number> = {
   Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
   Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
 };
+
+/** Returns true if the date is strictly after today (local time). */
+function isFutureDate(date: Date): boolean {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  return date.getTime() > today.getTime();
+}
 
 function parseFidelityDate(dateStr: string): Date | undefined {
   if (!dateStr || !dateStr.trim()) return undefined;
@@ -117,10 +127,15 @@ export function parseCsvFile(csvText: string): StockLot[] {
     skipEmptyLines: true,
   });
 
+  const rows = result.data as string[][];
+  if (rows.length > MAX_CSV_ROWS) {
+    throw new Error(`Le fichier contient trop de lignes (${rows.length}). Maximum autorisé : ${MAX_CSV_ROWS}.`);
+  }
+
   const lots: StockLot[] = [];
   let id = 0;
 
-  for (const row of result.data as string[][]) {
+  for (const row of rows) {
     // Skip header row
     if (row[0] === "Date d'acquisition" || row[0] === 'Date d\'acquisition') continue;
     // Skip footer lines
@@ -130,6 +145,8 @@ export function parseCsvFile(csvText: string): StockLot[] {
 
     const acquisitionDate = parseFidelityDate(row[0]);
     if (!acquisitionDate) continue;
+    // Acquisition date must be in the past (vesting/transfer dates may be future and are OK)
+    if (isFutureDate(acquisitionDate)) continue;
 
     const quantity = parseFidelityQuantity(row[1]);
     if (quantity <= 0) continue;
@@ -255,21 +272,28 @@ export function parseSalesCsvFile(csvText: string): SoldLot[] {
     skipEmptyLines: true,
   });
 
+  const rows = result.data as string[][];
+  if (rows.length > MAX_CSV_ROWS) {
+    throw new Error(`Le fichier contient trop de lignes (${rows.length}). Maximum autorisé : ${MAX_CSV_ROWS}.`);
+  }
+
   const lots: SoldLot[] = [];
   let id = 0;
 
-  for (const row of result.data as string[][]) {
+  for (const row of rows) {
     // Skip empty rows
     if (!row[0] || !row[0].trim()) continue;
 
     const acquisitionDate = parseSalesDate(row[0]);
     if (!acquisitionDate) continue;
+    if (isFutureDate(acquisitionDate)) continue;
 
     const quantity = parseFloat(row[1]?.trim() || '0');
     if (!quantity || quantity <= 0) continue;
 
     const saleDate = parseSalesDate(row[2]);
     if (!saleDate) continue;
+    if (isFutureDate(saleDate)) continue;
 
     const proceeds = parseSalesAmount(row[3]);
     const costBasis = parseSalesAmount(row[4]);

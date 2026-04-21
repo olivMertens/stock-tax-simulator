@@ -75,6 +75,24 @@ describe('parseCsvFile', () => {
     expect(lots).toHaveLength(0);
   });
 
+  it('skips rows with future acquisition dates', () => {
+    // Build a date guaranteed to be in the future
+    const future = new Date();
+    future.setFullYear(future.getFullYear() + 2);
+    const monthAbbr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][future.getMonth()];
+    const futureStr = `${monthAbbr}-15-${future.getFullYear()}`;
+    const csv = [HEADER, makeCsvRow({ date: futureStr })].join('\n');
+    const lots = parseCsvFile(csv);
+    expect(lots).toHaveLength(0);
+  });
+
+  it('rejects CSV files exceeding the row limit', () => {
+    const row = makeCsvRow();
+    const rows = Array.from({ length: 5001 }, () => row);
+    const csv = [HEADER, ...rows].join('\n');
+    expect(() => parseCsvFile(csv)).toThrow(/trop de lignes/);
+  });
+
   it('stores raw USD values', () => {
     const csv = [HEADER, makeCsvRow()].join('\n');
     const lots = parseCsvFile(csv);

@@ -28,6 +28,17 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
       setError(null);
       setFileName(file.name);
 
+      // Guard against oversized files (DoS / UI freeze)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} Mo). Taille maximale : 5 Mo.`);
+        return;
+      }
+      if (file.size === 0) {
+        setError('Le fichier est vide.');
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
@@ -103,9 +114,10 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
           <button
             type="button"
             onClick={() => setShowGuide(true)}
+            aria-label="Afficher le guide d'export depuis le courtier"
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors whitespace-nowrap shrink-0"
           >
-            <HelpCircle className="h-3.5 w-3.5" />
+            <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
             Comment exporter ?
           </button>
         </div>
@@ -164,8 +176,12 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
         </div>
 
         {loading && (
-          <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-            <RefreshCw className="h-4 w-4 animate-spin" />
+          <div
+            className="flex items-center gap-2 mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700"
+            role="status"
+            aria-live="polite"
+          >
+            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
             Récupération des taux de change BCE en cours…
           </div>
         )}
@@ -176,12 +192,21 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
               ? 'border-primary bg-blue-50'
               : 'border-gray-300 hover:border-gray-400'
           }`}
+          role="button"
+          tabIndex={0}
+          aria-label="Zone d'import. Glissez un fichier CSV ou appuyez sur Entrée pour parcourir."
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
         >
-          <Upload className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+          <Upload className="h-10 w-10 mx-auto mb-3 text-gray-400" aria-hidden="true" />
           <p className="text-sm text-gray-600 mb-2">
             {fileName ? (
               <>Fichier chargé : <strong>{fileName}</strong></>
@@ -201,7 +226,13 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
           />
         </div>
         {(error || ecbError) && (
-          <p className="mt-3 text-sm text-red-600">{error || ecbError}</p>
+          <p
+            className="mt-3 text-sm text-red-600"
+            role="alert"
+            aria-live="assertive"
+          >
+            {error || ecbError}
+          </p>
         )}
 
         <BrokerExportGuide open={showGuide} onClose={() => setShowGuide(false)} />
