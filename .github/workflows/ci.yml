@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Lint, type-check, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (front)
+        run: npm ci
+
+      - name: Install dependencies (api)
+        working-directory: api
+        run: npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check (front)
+        run: npx tsc -b --noEmit
+
+      - name: Type-check (api)
+        working-directory: api
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Audit front (high+)
+        run: npm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Audit api (high+)
+        working-directory: api
+        run: npm audit --audit-level=high
+        continue-on-error: false

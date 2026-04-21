@@ -104,4 +104,58 @@ describe('TaxCalculator component', () => {
     );
     expect(screen.getAllByText(/Taux effectif/).length).toBeGreaterThanOrEqual(1);
   });
+
+  it('shows 300k€ threshold banner when above300k > 0', () => {
+    const result = makeResult({
+      acquisitionGainTax: {
+        below300k: 300000,
+        above300k: 50000,
+        abatement50: 150000,
+        irBelow: 45000,
+        irAbove: 20000,
+        psBelow: 55800,
+        psAbove: 5550,
+        salaryContribution: 5000,
+        deductibleCSG: 28700,
+        total: 131350,
+      },
+    });
+    render(
+      <TaxCalculator result={result} taxMode="pfu" onTaxModeChange={vi.fn()} fiscalYear={2025} />
+    );
+    const alerts = screen.getAllByRole('alert');
+    const bannerTexts = alerts.map((el) => el.textContent || '').join(' ');
+    expect(bannerTexts).toMatch(/300 000/);
+    expect(bannerTexts).toMatch(/abattement/i);
+  });
+
+  it('does not show 300k€ banner when above300k = 0', () => {
+    const result = makeResult(); // default has above300k = 0
+    render(
+      <TaxCalculator result={result} taxMode="pfu" onTaxModeChange={vi.fn()} fiscalYear={2025} />
+    );
+    const alerts = screen.queryAllByRole('alert');
+    const bannerTexts = alerts.map((el) => el.textContent || '').join(' ');
+    expect(bannerTexts).not.toMatch(/300 000 € dépassé/);
+  });
+
+  it('shows CEHR banner when cehr > 0', () => {
+    const result = makeResult({ cehr: 2500 });
+    render(
+      <TaxCalculator result={result} taxMode="pfu" onTaxModeChange={vi.fn()} fiscalYear={2025} />
+    );
+    const alerts = screen.getAllByRole('alert');
+    const bannerTexts = alerts.map((el) => el.textContent || '').join(' ');
+    expect(bannerTexts).toMatch(/CEHR/);
+  });
+
+  it('does not show CEHR banner when cehr = 0', () => {
+    const result = makeResult({ cehr: 0 });
+    render(
+      <TaxCalculator result={result} taxMode="pfu" onTaxModeChange={vi.fn()} fiscalYear={2025} />
+    );
+    const alerts = screen.queryAllByRole('alert');
+    const bannerTexts = alerts.map((el) => el.textContent || '').join(' ');
+    expect(bannerTexts).not.toMatch(/CEHR/);
+  });
 });

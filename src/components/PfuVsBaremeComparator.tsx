@@ -14,16 +14,6 @@ interface PfuVsBaremeComparatorProps {
 }
 
 export const PfuVsBaremeComparator = React.memo(function PfuVsBaremeComparator({ lots, settings, fiscalYear }: PfuVsBaremeComparatorProps) {
-  if (lots.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center text-gray-500">
-          Sélectionnez des lots à vendre pour comparer PFU et barème progressif.
-        </CardContent>
-      </Card>
-    );
-  }
-
   const { pfuResult, baremeResult, pfuBetter, savings, recommended } = React.useMemo(() => {
     const baseSim: SaleSimulation = {
       lots,
@@ -47,6 +37,16 @@ export const PfuVsBaremeComparator = React.memo(function PfuVsBaremeComparator({
       recommended: isPfuBetter ? 'PFU' : 'Barème progressif',
     };
   }, [lots, settings, fiscalYear]);
+
+  if (lots.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-gray-500">
+          Sélectionnez des lots à vendre pour comparer PFU et barème progressif.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
