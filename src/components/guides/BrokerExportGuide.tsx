@@ -42,7 +42,7 @@ export function BrokerExportGuide({ open, onClose, importMode }: BrokerExportGui
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-50 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-xl bg-white shadow-xl overflow-hidden">
+      <div className="relative z-50 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-white shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
           <div className="flex items-center gap-3">
