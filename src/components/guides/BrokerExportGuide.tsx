@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, X, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import type { BrokerGuide, ImportMode } from './types';
