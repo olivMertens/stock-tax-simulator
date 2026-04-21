@@ -104,8 +104,15 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
   const totalAcquisitionGain = lotResults.reduce((sum, r) => sum + r.acquisitionGain, 0);
   const totalCapitalGain = lotResults.reduce((sum, r) => sum + r.capitalGain, 0);
 
-  const hasFQ = lotResults.some((r) => r.planType === 'qualified_pre_macron' && r.acquisitionGain > 0);
-  const primaryPlanType = hasFQ ? 'qualified_pre_macron' : 'qualified_macron';
+  // Split acquisition gain between Macron and pre-Macron regimes: each regime
+  // has its own abatement and PS rules, so they must be computed independently
+  // and summed (instead of routing everything through a single "primary" regime).
+  const macronAcqGain = lotResults
+    .filter((r) => r.planType !== 'qualified_pre_macron')
+    .reduce((sum, r) => sum + r.acquisitionGain, 0);
+  const fqAcqGain = lotResults
+    .filter((r) => r.planType === 'qualified_pre_macron')
+    .reduce((sum, r) => sum + r.acquisitionGain, 0);
 
   const fqLots = safeSimulation.lots.filter(
     (e) => e.lot.planType === 'qualified_pre_macron'
@@ -121,19 +128,46 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
   const hasLongHolding = safeSimulation.lots.some((e) => e.lot.holdingPeriod === 'Long');
   const holdingPeriod: 'Short' | 'Long' = hasLongHolding ? 'Long' : 'Short';
 
-  const acquisitionGainTax = calculateAcquisitionGainTax(
-    totalAcquisitionGain,
+  const macronTax = calculateAcquisitionGainTax(
+    macronAcqGain,
     safeSimulation.otherTaxableIncome,
     safeSimulation.taxShares,
-    primaryPlanType,
+    'qualified_macron',
+    undefined,
+    holdingPeriod,
+    config
+  );
+
+  // FQ taxable income stacks on top of Macron taxable contribution so progressive
+  // IR brackets are applied correctly when both regimes coexist.
+  const macronTaxableContribution =
+    (macronTax.below300k - macronTax.abatement50) + macronTax.above300k;
+
+  const fqTax = calculateAcquisitionGainTax(
+    fqAcqGain,
+    safeSimulation.otherTaxableIncome + macronTaxableContribution,
+    safeSimulation.taxShares,
+    'qualified_pre_macron',
     earliestGrantDate,
     holdingPeriod,
     config
   );
 
-  const acqTaxableIncome = primaryPlanType === 'qualified_macron'
-    ? (acquisitionGainTax.below300k - acquisitionGainTax.abatement50) + acquisitionGainTax.above300k
-    : acquisitionGainTax.below300k;
+  const acquisitionGainTax = {
+    below300k: macronTax.below300k + fqTax.below300k,
+    above300k: macronTax.above300k + fqTax.above300k,
+    abatement50: macronTax.abatement50 + fqTax.abatement50,
+    irBelow: macronTax.irBelow + fqTax.irBelow,
+    irAbove: macronTax.irAbove + fqTax.irAbove,
+    psBelow: macronTax.psBelow + fqTax.psBelow,
+    psAbove: macronTax.psAbove + fqTax.psAbove,
+    salaryContribution: macronTax.salaryContribution + fqTax.salaryContribution,
+    deductibleCSG: macronTax.deductibleCSG + fqTax.deductibleCSG,
+    total: macronTax.total + fqTax.total,
+  };
+
+  // FQ below300k carries no abatement, so its full value is taxable income.
+  const acqTaxableIncome = macronTaxableContribution + fqTax.below300k;
 
   // Compute holding abatement for pre-2018 lots (applies only in barème mode)
   const saleDate = new Date();

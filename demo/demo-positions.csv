@@ -1,0 +1,12 @@
+Date d'acquisition,Quantité,Prix de revient,Prix de revient / action,Valeur,Plus-value/Moins-value,Date de disponibilité à la vente,Date de disponibilité pour transfert,Date d'attribution,Origine des actions,Période de détention
+Feb-15-2023,25,7000,280,10750,3750,Feb-15-2024,Feb-15-2024,Jan-10-2021,FM,Long
+Sep-01-2025,15,6300,420,6450,150,Sep-01-2026,Sep-01-2026,Jul-15-2023,FM,Short
+Jun-15-2024,800,320,000,400,344,000,24,000,Jun-15-2025,Jun-15-2025,May-01-2022,FM,Short
+Aug-20-2018,10,1050,105,4300,3250,Aug-20-2019,Aug-20-2019,Jun-15-2016,FQ,Long
+Dec-31-2025,4.9060,2135,435,2074,-61,-,-,Oct-01-2025,SP,Short
+Mar-15-2024,5.5000,2063,375,2365,302,Mar-15-2025,Mar-15-2025,Jan-02-2024,SP,Long
+Nov-15-2025,8,3400,425,3440,40,Nov-15-2026,Nov-15-2026,Nov-15-2025,DO,Short
+Jan-10-2023,40,9600,240,17,200,7600,Jan-10-2024,Jan-10-2024,Jan-10-2023,DO,Long
+Oct-01-2025,0.7500,323,430,323,0,Oct-01-2026,Oct-01-2026,Aug-15-2023,FM,Short
+,
+Les valeurs sont affichées en USD
