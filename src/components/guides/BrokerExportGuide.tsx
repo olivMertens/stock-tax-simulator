@@ -126,11 +126,16 @@ export function BrokerExportGuide({ open, onClose, importMode }: BrokerExportGui
               className="text-sm text-gray-700 leading-relaxed"
               dangerouslySetInnerHTML={{ __html: step.description }}
             />
-            {step.importModeHint?.[importMode] && (
-              <p
-                className="text-sm text-primary bg-primary/5 border border-primary/20 rounded-lg px-3 py-2"
-                dangerouslySetInnerHTML={{ __html: step.importModeHint[importMode]! }}
-              />
+            {step.importModeHint && (
+              <div className="space-y-1.5">
+                {Object.entries(step.importModeHint).map(([mode, hint]) => (
+                  <p
+                    key={mode}
+                    className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+                    dangerouslySetInnerHTML={{ __html: hint! }}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
