@@ -204,7 +204,7 @@ export const CsvImporter = React.memo(function CsvImporter({ onImport, onImportS
           <p className="mt-3 text-sm text-red-600">{error || ecbError}</p>
         )}
 
-        <BrokerExportGuide open={showGuide} onClose={() => setShowGuide(false)} importMode={importMode} />
+        <BrokerExportGuide open={showGuide} onClose={() => setShowGuide(false)} />
       </CardContent>
     </Card>
   );

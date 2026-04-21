@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
-import type { BrokerGuide, ImportMode } from './types';
+import type { BrokerGuide } from './types';
 import { fidelityGuide } from './fidelity-steps';
 
 const ALL_GUIDES: BrokerGuide[] = [fidelityGuide];
@@ -10,10 +10,9 @@ const ALL_GUIDES: BrokerGuide[] = [fidelityGuide];
 interface BrokerExportGuideProps {
   open: boolean;
   onClose: () => void;
-  importMode: ImportMode;
 }
 
-export function BrokerExportGuide({ open, onClose, importMode }: BrokerExportGuideProps) {
+export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
   const [activeBroker, setActiveBroker] = React.useState(0);
   const [activeStep, setActiveStep] = React.useState(0);
 
