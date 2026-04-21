@@ -59,9 +59,10 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
           Ventes effectuées ({filteredLots.length} lot{filteredLots.length > 1 ? 's' : ''})
           {hasMultipleYears && (
             <span className="ml-auto flex items-center gap-2 text-sm font-normal">
-              <Calendar className="h-4 w-4 text-gray-400" />
+              <Calendar className="h-4 w-4 text-gray-400" aria-hidden="true" />
               <Select
                 value={String(saleYear ?? '')}
+                aria-label="Filtrer par année de cession"
                 onChange={(e) => onSaleYearChange(Number(e.target.value))}
               >
                 {saleYears.map((y) => (
@@ -110,16 +111,17 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+            <caption className="sr-only">Liste des lots vendus avec quantité, produits, coût, plus/moins-value et régime fiscal</caption>
             <thead>
               <tr className="border-b text-left text-gray-500">
-                <th className="pb-2 pr-3 font-medium">Acquisition</th>
-                <th className="pb-2 pr-3 font-medium">Vente</th>
-                <th className="pb-2 pr-3 font-medium text-right">Qté</th>
-                <th className="pb-2 pr-3 font-medium text-right">Produits</th>
-                <th className="pb-2 pr-3 font-medium text-right">Coût</th>
-                <th className="pb-2 pr-3 font-medium text-right">+/- value</th>
-                <th className="pb-2 pr-3 font-medium">Origine</th>
-                <th className="pb-2 font-medium">Plan</th>
+                <th scope="col" className="pb-2 pr-3 font-medium">Acquisition</th>
+                <th scope="col" className="pb-2 pr-3 font-medium">Vente</th>
+                <th scope="col" className="pb-2 pr-3 font-medium text-right">Qté</th>
+                <th scope="col" className="pb-2 pr-3 font-medium text-right">Produits</th>
+                <th scope="col" className="pb-2 pr-3 font-medium text-right">Coût</th>
+                <th scope="col" className="pb-2 pr-3 font-medium text-right">+/- value</th>
+                <th scope="col" className="pb-2 pr-3 font-medium">Origine</th>
+                <th scope="col" className="pb-2 font-medium">Plan</th>
               </tr>
             </thead>
             <tbody>
@@ -148,6 +150,7 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
                   <td className="py-2 pr-3">
                     <Select
                       value={lot.origin}
+                      aria-label={`Origine du lot acquis le ${formatDate(lot.acquisitionDate)}`}
                       onChange={(e) => handleOriginChange(lot.id, e.target.value as StockOrigin)}
                     >
                       <option value="DO">Stock Award</option>
@@ -162,6 +165,7 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
                     ) : (
                       <Select
                         value={lot.planType}
+                        aria-label={`Régime fiscal du lot acquis le ${formatDate(lot.acquisitionDate)}`}
                         onChange={(e) => handlePlanTypeChange(lot.id, e.target.value as PlanType)}
                       >
                         <option value="qualified_macron">Qualifié (Macron)</option>

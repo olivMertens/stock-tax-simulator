@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Tooltip } from './ui/tooltip';
-import { Receipt, TrendingUp, TrendingDown } from 'lucide-react';
+import { Receipt, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import type { TaxSimulationResult, TaxMode } from '../lib/types';
 import { getTaxConfig } from '../lib/tax-rates';
 import { formatEUR, formatPercent } from '../lib/utils';
@@ -15,6 +15,8 @@ interface TaxCalculatorProps {
 }
 
 export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode, onTaxModeChange, fiscalYear }: TaxCalculatorProps) {
+  const cfg = React.useMemo(() => getTaxConfig(fiscalYear), [fiscalYear]);
+
   if (!result) {
     return (
       <Card>
@@ -27,7 +29,6 @@ export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode
 
   const r = result;
 
-  const cfg = getTaxConfig(fiscalYear);
   const fmtRate = (r: number) => `${(r * 100).toFixed(1).replace('.', ',')}%`;
   const psRate = fmtRate(cfg.psPatrimoine);
   const psActiviteRate = fmtRate(cfg.psActivite);
@@ -35,8 +36,50 @@ export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode
   const pfuTotalRate = fmtRate(cfg.pfuTotalRate);
   const salaryRate = fmtRate(cfg.salaryContributionRate);
 
+  // UX: surface the 300k€ AGA threshold overrun prominently — the tax regime
+  // changes drastically above this limit (no 50% abatement, +10% salary contrib).
+  const exceeds300k = r.acquisitionGainTax.above300k > 0;
+  const cehrThreshold = 250000;
+  const cehrTriggered = r.cehr > 0;
+
   return (
     <div className="space-y-6">
+      {exceeds300k && (
+        <div
+          className="flex items-start gap-3 p-4 rounded-lg border-2 border-amber-300 bg-amber-50 text-amber-900"
+          role="alert"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="text-sm">
+            <p className="font-semibold">
+              Seuil de 300 000 € dépassé — fraction soumise à {formatEUR(r.acquisitionGainTax.above300k)}
+            </p>
+            <p className="mt-1">
+              Au-delà de 300 000 € de gain d'acquisition AGA, vous perdez l'abattement de 50 %,
+              les prélèvements sociaux passent à {psActiviteRate} (régime salarial) et une
+              contribution salariale de {salaryRate} s'applique. Envisagez d'étaler les ventes sur plusieurs années.
+            </p>
+          </div>
+        </div>
+      )}
+      {cehrTriggered && (
+        <div
+          className="flex items-start gap-3 p-4 rounded-lg border-2 border-orange-300 bg-orange-50 text-orange-900"
+          role="alert"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="text-sm">
+            <p className="font-semibold">
+              Contribution exceptionnelle hauts revenus (CEHR) déclenchée : {formatEUR(r.cehr)}
+            </p>
+            <p className="mt-1">
+              Votre revenu fiscal de référence dépasse {formatEUR(cehrThreshold)} (célibataire) ou {formatEUR(500000)} (couple).
+              La CEHR s'ajoute à vos impôts (3 % ou 4 % selon les tranches).
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Tax mode toggle */}
       <Card>
         <CardContent className="p-4">

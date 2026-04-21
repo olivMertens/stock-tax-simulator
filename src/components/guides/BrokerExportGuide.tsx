@@ -15,20 +15,58 @@ interface BrokerExportGuideProps {
 export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
   const [activeBroker, setActiveBroker] = React.useState(0);
   const [activeStep, setActiveStep] = React.useState(0);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const previouslyFocused = React.useRef<HTMLElement | null>(null);
 
   // Reset step when dialog opens or broker changes
   React.useEffect(() => {
     if (open) setActiveStep(0);
   }, [open, activeBroker]);
 
-  // Close on Escape
+  // Close on Escape + focus trap + restore focus on close
   React.useEffect(() => {
     if (!open) return;
+
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+
+    // Focus first focusable element inside the dialog
+    const focusFirst = () => {
+      const el = dialogRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      el?.focus();
+    };
+    // Defer to allow DOM paint
+    const raf = requestAnimationFrame(focusFirst);
+
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', handler);
+      previouslyFocused.current?.focus?.();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -40,12 +78,18 @@ export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-50 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-white shadow-xl overflow-hidden">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="broker-export-guide-title"
+        className="relative z-50 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-xl bg-white shadow-xl overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-gray-900">
+            <h2 id="broker-export-guide-title" className="text-sm font-semibold text-gray-900">
               Comment exporter depuis votre courtier
             </h2>
             {/* Broker tabs — ready for multi-broker */}
