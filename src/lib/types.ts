@@ -28,6 +28,44 @@ export interface StockLot {
   currentValueUsd?: number;
   eurUsdRate?: number;
   importCurrency?: ImportCurrency;
+  // Reconciliation with Microsoft StockExport (optional — present when matched)
+  grantIdHash?: string;
+  awardType?: string;
+  reconciled?: boolean;
+}
+
+/**
+ * A single vesting event from the StockExport Vest Schedules sheet.
+ * For qualified plans, this is the legal acquisition date (date d'acquisition
+ * définitive) which triggers the gain d'acquisition for French tax purposes.
+ */
+export interface VestEvent {
+  date: Date;
+  shares: number;
+}
+
+/**
+ * A stock grant extracted from the Microsoft StockExport file.
+ * Used to auto-classify Fidelity lots (planType, origin refinement) and to
+ * project future unvested income.
+ */
+export interface GrantInfo {
+  /** SHA-256 hash of the original Award ID (we never persist the plaintext). */
+  grantIdHash: string;
+  /** Raw Award Type label from the file (e.g. "FY23 FQ Annual", "On-Hire FQ", "FY24 SA Annual"). */
+  awardType: string;
+  /** Award (grant) date — decisive for Macron / pré-Macron classification. */
+  awardDate: Date;
+  /** Derived plan type based on awardType + awardDate. */
+  planType: PlanType;
+  /** Short origin code the rest of the app uses (DO / FM / FQ / SP). */
+  origin: StockOrigin;
+  /** Vesting schedule; dates may be past or future. */
+  vestSchedule: VestEvent[];
+  /** Totals from Award Summary (for audit display). */
+  totalAwarded: number;
+  totalVested: number;
+  totalUnvested: number;
 }
 
 export interface SoldLot {

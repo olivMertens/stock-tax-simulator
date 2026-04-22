@@ -5,14 +5,19 @@ import { cn } from '../../lib/utils';
 import type { BrokerGuide } from './types';
 import { fidelityGuide } from './fidelity-steps';
 
-const ALL_GUIDES: BrokerGuide[] = [fidelityGuide];
+const DEFAULT_GUIDES: BrokerGuide[] = [fidelityGuide];
+const DEFAULT_TITLE = 'Comment exporter depuis votre courtier';
 
 interface BrokerExportGuideProps {
   open: boolean;
   onClose: () => void;
+  /** Guides to display. Defaults to the Fidelity guide. */
+  guides?: BrokerGuide[];
+  /** Dialog title. Defaults to "Comment exporter depuis votre courtier". */
+  title?: string;
 }
 
-export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
+export function BrokerExportGuide({ open, onClose, guides = DEFAULT_GUIDES, title = DEFAULT_TITLE }: BrokerExportGuideProps) {
   const [activeBroker, setActiveBroker] = React.useState(0);
   const [activeStep, setActiveStep] = React.useState(0);
   const dialogRef = React.useRef<HTMLDivElement>(null);
@@ -71,7 +76,7 @@ export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
 
   if (!open) return null;
 
-  const guide = ALL_GUIDES[activeBroker];
+  const guide = guides[activeBroker] ?? guides[0];
   const step = guide.steps[activeStep];
   const isFirst = activeStep === 0;
   const isLast = activeStep === guide.steps.length - 1;
@@ -90,12 +95,12 @@ export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
         <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
           <div className="flex items-center gap-3">
             <h2 id="broker-export-guide-title" className="text-sm font-semibold text-gray-900">
-              Comment exporter depuis votre courtier
+              {title}
             </h2>
             {/* Broker tabs — ready for multi-broker */}
-            {ALL_GUIDES.length > 1 && (
+            {guides.length > 1 && (
               <div className="flex gap-1 ml-2">
-                {ALL_GUIDES.map((g, i) => (
+                {guides.map((g, i) => (
                   <button
                     key={g.brokerId}
                     onClick={() => setActiveBroker(i)}
@@ -111,7 +116,7 @@ export function BrokerExportGuide({ open, onClose }: BrokerExportGuideProps) {
                 ))}
               </div>
             )}
-            {ALL_GUIDES.length === 1 && (
+            {guides.length === 1 && (
               <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
                 {guide.brokerName}
               </span>

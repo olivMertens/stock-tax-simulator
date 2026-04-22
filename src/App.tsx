@@ -10,9 +10,10 @@ import { PfuVsBaremeComparator } from './components/PfuVsBaremeComparator';
 import { BackupPanel } from './components/BackupPanel';
 import { Dialog, DialogHeader, DialogFooter } from './components/ui/dialog';
 import { runSimulation } from './lib/tax-engine';
-import { loadVersionedSettings, safeSetItem, saveVersionedSettings } from './lib/storage';
+import { loadVersionedSettings, safeSetItem, saveVersionedSettings, loadGrants } from './lib/storage';
+import { reconcileLots } from './lib/stockexport-reconciliation';
 import type { ImportResult } from './lib/backup';
-import type { StockLot, SoldLot, SaleLotEntry, AppSettings, TaxSimulationResult, TaxMode, SavedSimulation } from './lib/types';
+import type { StockLot, SoldLot, SaleLotEntry, AppSettings, TaxSimulationResult, TaxMode, SavedSimulation, GrantInfo } from './lib/types';
 import { generateId } from './lib/utils';
 
 // Lazy-load heavy components (pdfjs-dist via Settings, recharts via Portfolio)
@@ -160,6 +161,7 @@ function App() {
   const [settings, setSettings] = React.useState<AppSettings>(() => {
     return loadVersionedSettings('appSettings', DEFAULT_SETTINGS);
   });
+  const [grants, setGrants] = React.useState<GrantInfo[]>(() => loadGrants());
   const [showRules, setShowRules] = React.useState(false);
   const [showSalesImportDialog, setShowSalesImportDialog] = React.useState(false);
   const [savedSimulations, setSavedSimulations] = React.useState<SavedSimulation[]>(() => {
@@ -175,9 +177,16 @@ function App() {
   const fiscalYear = saleYear ?? new Date().getFullYear();
 
   const handleImport = React.useCallback((importedLots: StockLot[]) => {
+    // 1. First, reconcile with StockExport grants when available — this gives the
+    //    most authoritative classification (actual plan type from Microsoft).
+    const reconciled = grants.length > 0 ? reconcileLots(importedLots, grants).lots : importedLots;
+
+    // 2. Then apply user overrides and defaults for any DO lots that are still not
+    //    reconciled (no grant matched or StockExport not imported).
     try {
       const overrides = JSON.parse(localStorage.getItem('planTypeOverrides') || '{}');
-      const lotsWithOverrides = importedLots.map((lot) => {
+      const lotsWithOverrides = reconciled.map((lot) => {
+        if (lot.reconciled) return lot; // StockExport wins over overrides/defaults
         if (lot.origin === 'DO' && overrides[lot.id]) {
           return { ...lot, planType: overrides[lot.id] };
         }
@@ -188,13 +197,36 @@ function App() {
       });
       setLots(lotsWithOverrides);
     } catch {
-      setLots(importedLots);
+      setLots(reconciled);
     }
     // Clear sales data — positions and sales are mutually exclusive workflows
     setSoldLots([]);
     setSaleEntries([]);
     setResult(null);
-  }, [settings.defaultPlanType]);
+  }, [settings.defaultPlanType, grants]);
+
+  /**
+   * Update grants and re-reconcile any lots currently loaded. This is the path
+   * when the user imports StockExport AFTER already loading their Fidelity
+   * positions — we want lots to pick up the new classification immediately.
+   */
+  const handleGrantsChange = React.useCallback((nextGrants: GrantInfo[]) => {
+    setGrants(nextGrants);
+    if (lots.length > 0 && nextGrants.length > 0) {
+      const reconciled = reconcileLots(lots, nextGrants).lots;
+      setLots(reconciled);
+      // Capture reconciled planTypes as overrides so subsequent re-imports honour them.
+      try {
+        const overrides = JSON.parse(localStorage.getItem('planTypeOverrides') || '{}');
+        for (const lot of reconciled) {
+          if (lot.reconciled) overrides[lot.id] = lot.planType;
+        }
+        localStorage.setItem('planTypeOverrides', JSON.stringify(overrides));
+      } catch {
+        // non-fatal
+      }
+    }
+  }, [lots]);
 
   const handleImportSales = React.useCallback((importedSoldLots: SoldLot[]) => {
     const withPlanType = importedSoldLots.map((sl) => ({
@@ -519,7 +551,12 @@ function App() {
         <div hidden={activeTab !== 'settings'}>
           <div className="space-y-6">
             <React.Suspense fallback={<LazyFallback />}>
-              <Settings settings={settings} onSettingsChange={setSettings} />
+              <Settings
+                settings={settings}
+                onSettingsChange={setSettings}
+                grants={grants}
+                onGrantsChange={handleGrantsChange}
+              />
             </React.Suspense>
             <div className="max-w-2xl">
               <BackupPanel

@@ -1,4 +1,4 @@
-import type { AppSettings, FamilyStatus } from './types';
+import type { AppSettings, FamilyStatus, GrantInfo, PlanType, StockOrigin } from './types';
 
 /**
  * Current version of the localStorage data schema.
@@ -108,4 +108,103 @@ export function safeSetItem(key: string, value: string): boolean {
     }
     return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Grants (Microsoft StockExport reconciliation data)
+// ---------------------------------------------------------------------------
+
+/**
+ * Versioned persistence for grant metadata imported from Microsoft StockExport.
+ * Stored separately from AppSettings to keep the two schemas decoupled.
+ * Contains only hashed IDs and non-nominative fields — no PII.
+ */
+export const GRANTS_STORAGE_KEY = 'stockExportGrants';
+const GRANTS_VERSION = 1;
+
+const VALID_PLAN_TYPES_ALL: readonly PlanType[] = ['qualified_macron', 'qualified_pre_macron', 'non_qualified'];
+const VALID_ORIGINS: readonly StockOrigin[] = ['SP', 'DO', 'FM', 'FQ'];
+
+export function saveGrants(grants: GrantInfo[]): boolean {
+  const payload = {
+    version: GRANTS_VERSION,
+    data: grants.map((g) => ({
+      grantIdHash: g.grantIdHash,
+      awardType: g.awardType,
+      awardDate: g.awardDate.toISOString(),
+      planType: g.planType,
+      origin: g.origin,
+      vestSchedule: g.vestSchedule.map((v) => ({ date: v.date.toISOString(), shares: v.shares })),
+      totalAwarded: g.totalAwarded,
+      totalVested: g.totalVested,
+      totalUnvested: g.totalUnvested,
+    })),
+  };
+  return safeSetItem(GRANTS_STORAGE_KEY, JSON.stringify(payload));
+}
+
+export function loadGrants(): GrantInfo[] {
+  try {
+    const raw = localStorage.getItem(GRANTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return [];
+
+    // Currently a single version; validation only
+    const arr = Array.isArray(parsed.data) ? parsed.data : [];
+    const out: GrantInfo[] = [];
+    for (const item of arr) {
+      const g = validateGrant(item);
+      if (g) out.push(g);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+export function clearGrants(): void {
+  try {
+    localStorage.removeItem(GRANTS_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function validateGrant(raw: unknown): GrantInfo | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Record<string, unknown>;
+
+  const grantIdHash = typeof obj.grantIdHash === 'string' ? obj.grantIdHash : null;
+  const awardType = typeof obj.awardType === 'string' ? obj.awardType : null;
+  const awardDate = typeof obj.awardDate === 'string' ? new Date(obj.awardDate) : null;
+  const planType = VALID_PLAN_TYPES_ALL.includes(obj.planType as PlanType) ? (obj.planType as PlanType) : null;
+  const origin = VALID_ORIGINS.includes(obj.origin as StockOrigin) ? (obj.origin as StockOrigin) : null;
+
+  if (!grantIdHash || !awardType || !awardDate || !planType || !origin) return null;
+  if (isNaN(awardDate.getTime())) return null;
+
+  const vestRaw = Array.isArray(obj.vestSchedule) ? obj.vestSchedule : [];
+  const vestSchedule = vestRaw
+    .map((v) => {
+      if (!v || typeof v !== 'object') return null;
+      const vo = v as Record<string, unknown>;
+      const date = typeof vo.date === 'string' ? new Date(vo.date) : null;
+      const shares = typeof vo.shares === 'number' ? vo.shares : NaN;
+      if (!date || isNaN(date.getTime()) || !Number.isFinite(shares) || shares <= 0) return null;
+      return { date, shares };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+
+  return {
+    grantIdHash,
+    awardType,
+    awardDate,
+    planType,
+    origin,
+    vestSchedule,
+    totalAwarded: isNonNegativeNumber(obj.totalAwarded) ? (obj.totalAwarded as number) : 0,
+    totalVested: isNonNegativeNumber(obj.totalVested) ? (obj.totalVested as number) : 0,
+    totalUnvested: isNonNegativeNumber(obj.totalUnvested) ? (obj.totalUnvested as number) : 0,
+  };
 }

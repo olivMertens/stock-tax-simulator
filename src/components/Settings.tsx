@@ -5,15 +5,18 @@ import { Select } from './ui/select';
 import { Button } from './ui/button';
 import { Alert } from './ui/alert';
 import { Settings as SettingsIcon, Save, Upload, FileCheck, RefreshCw, AlertTriangle } from 'lucide-react';
-import type { AppSettings, FamilyStatus } from '../lib/types';
+import type { AppSettings, FamilyStatus, GrantInfo } from '../lib/types';
 import { parseTaxNoticePdf, type TaxNoticeData } from '../lib/tax-notice-parser';
 import { Tooltip } from './ui/tooltip';
 import { saveVersionedSettings } from '../lib/storage';
 import { formatEUR } from '../lib/utils';
+import { StockExportImporter } from './StockExportImporter';
 
 interface SettingsProps {
   settings: AppSettings;
   onSettingsChange: (settings: AppSettings) => void;
+  grants?: GrantInfo[];
+  onGrantsChange?: (grants: GrantInfo[]) => void;
 }
 
 function calculateTaxShares(familyStatus: FamilyStatus, numberOfChildren: number): number {
@@ -27,7 +30,7 @@ function calculateTaxShares(familyStatus: FamilyStatus, numberOfChildren: number
   return shares;
 }
 
-export function Settings({ settings, onSettingsChange }: SettingsProps) {
+export function Settings({ settings, onSettingsChange, grants = [], onGrantsChange }: SettingsProps) {
   const [local, setLocal] = React.useState(settings);
   const [saved, setSaved] = React.useState(false);
   const [parsedNotice, setParsedNotice] = React.useState<TaxNoticeData | null>(null);
@@ -90,6 +93,14 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
 
   return (
     <div className="space-y-6 max-w-2xl pb-6">
+      {/* StockExport import — enables automatic lot qualification */}
+      <StockExportImporter
+        grants={grants}
+        onGrantsChange={onGrantsChange ?? (() => {})}
+        defaultPlanType={local.defaultPlanType}
+        onDefaultPlanTypeChange={(value) => update({ defaultPlanType: value })}
+      />
+
       {/* PDF import — always visible */}
       <Card>
         <CardContent className="pt-5 pb-4">
@@ -293,30 +304,6 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
                   placeholder="0"
                 />
               </div>
-            </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Section: Préférences d'import */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Préférences d'import</h3>
-            <div className="max-w-xs">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Régime Stock Awards (DO)
-              </label>
-              <Select
-                value={local.defaultPlanType}
-                onChange={(e) =>
-                  update({ defaultPlanType: e.target.value as 'qualified_macron' | 'non_qualified' })
-                }
-              >
-                <option value="qualified_macron">Qualifié (AGA)</option>
-                <option value="non_qualified">Non qualifié</option>
-              </Select>
-              <p className="text-xs text-gray-400 mt-1">
-                Appliqué à l'import pour les lots DO.
-              </p>
             </div>
           </div>
         </CardContent>

@@ -36,6 +36,34 @@ function parseFidelityQuantity(qtyStr: string): number {
 }
 
 /**
+ * Parse a single Fidelity amount token.
+ *
+ * Fidelity currently exports amounts as cents without a decimal separator,
+ * with non-breaking spaces (or regular spaces) as thousand separators.
+ * Examples: "84832" means 848.32, "2 61673" means 2616.73, "-29797" means −297.97.
+ *
+ * We remain backward-compatible with an older format that used explicit
+ * decimal points ("2616.73"): when a dot is present, the token is parsed as-is.
+ *
+ * Returns NaN if the token cannot be interpreted.
+ */
+function parseFidelityAmount(raw: string): number {
+  // Normalise whitespace (including NBSP U+00A0) and remove thousand separators.
+  const cleaned = raw.replace(/[\s\u00A0]/g, '');
+  if (!cleaned) return NaN;
+
+  if (cleaned.includes('.')) {
+    // Explicit decimal format.
+    return parseFloat(cleaned);
+  }
+
+  // No decimal: Fidelity's cents-without-separator format.
+  const asInt = parseInt(cleaned, 10);
+  if (!Number.isFinite(asInt)) return NaN;
+  return asInt / 100;
+}
+
+/**
  * Reassemble amount tokens that may have been split by thousand-separator commas.
  * Expects exactly 4 amounts: totalCost, costPerShare, currentValue, gainLoss.
  * When there are more than 4 tokens (thousand separators created extra fields),
@@ -50,7 +78,7 @@ function reassembleAmounts(
 
   // Fast path: exactly 4 tokens → no thousand-separator ambiguity
   if (n === 4) {
-    const amounts = tokens.map(t => parseFloat(t));
+    const amounts = tokens.map(parseFidelityAmount);
     if (amounts.some(v => isNaN(v))) return null;
     return { totalCost: amounts[0], costPerShare: amounts[1], currentValue: amounts[2], gainLoss: amounts[3] };
   }
@@ -81,7 +109,7 @@ function reassembleAmounts(
         }
         if (!valid) continue;
 
-        const amounts = groups.map(g => parseFloat(g.join('')));
+        const amounts = groups.map(g => parseFidelityAmount(g.join('')));
         if (amounts.some(v => isNaN(v))) continue;
 
         const [totalCost, costPerShare, currentValue, gainLoss] = amounts;

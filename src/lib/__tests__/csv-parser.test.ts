@@ -11,10 +11,10 @@ function makeCsvRow(overrides: Partial<{
   return [
     overrides.date ?? 'Mar-15-2023',
     overrides.qty ?? '100',
-    overrides.totalCost ?? '25000',
-    overrides.costPerShare ?? '250',
-    overrides.currentValue ?? '40000',
-    overrides.gl ?? '15000',
+    overrides.totalCost ?? '25000.00',
+    overrides.costPerShare ?? '250.00',
+    overrides.currentValue ?? '40000.00',
+    overrides.gl ?? '15000.00',
     overrides.saleDate ?? 'Mar-15-2024',
     overrides.transferDate ?? 'Mar-15-2024',
     overrides.grantDate ?? 'Jan-01-2022',
@@ -132,14 +132,14 @@ describe('parseCsvFile', () => {
   });
 
   it('parses integer dollar amounts correctly', () => {
-    const csv = [HEADER, makeCsvRow({ costPerShare: '333' })].join('\n');
+    const csv = [HEADER, makeCsvRow({ costPerShare: '333.00' })].join('\n');
     const lots = parseCsvFile(csv);
     expect(lots[0].costBasisPerShareUsd).toBe(333);
   });
 
   it('handles amounts with thousand-separator commas', () => {
     // totalCost=$42,200 and currentValue=$42,200 have thousand separators creating extra fields
-    const csv = [HEADER, 'Mar-15-2023,100,42,200,422,42,200,0,Mar-15-2024,Mar-15-2024,Jan-01-2022,DO,Short'].join('\n');
+    const csv = [HEADER, 'Mar-15-2023,100,42,200.00,422.00,42,200.00,0.00,Mar-15-2024,Mar-15-2024,Jan-01-2022,DO,Short'].join('\n');
     const lots = parseCsvFile(csv);
     expect(lots).toHaveLength(1);
     expect(lots[0].totalCostBasisUsd).toBe(42200);
@@ -148,7 +148,7 @@ describe('parseCsvFile', () => {
   });
 
   it('handles negative gain/loss with thousand-separator commas', () => {
-    const csv = [HEADER, 'Mar-15-2023,100,42,200,422,40,966,-1,234,-,-,Jan-01-2022,DO,Short'].join('\n');
+    const csv = [HEADER, 'Mar-15-2023,100,42,200.00,422.00,40,966.00,-1,234.00,-,-,Jan-01-2022,DO,Short'].join('\n');
     const lots = parseCsvFile(csv);
     expect(lots).toHaveLength(1);
     expect(lots[0].totalCostBasisUsd).toBe(42200);
@@ -156,11 +156,38 @@ describe('parseCsvFile', () => {
     expect(lots[0].currentValueUsd).toBe(40966);
   });
 
+  it('parses Fidelity cents-without-decimal format', () => {
+    // Current Fidelity format: no decimal point, last 2 digits are cents.
+    // "261673" means $2616.73, "33315" means $333.15, etc.
+    const csv = [
+      HEADER,
+      'Mar-31-2026,7.8545,261673,33315,333156,71484,-,-,Jan-02-2026,SP,Short',
+    ].join('\n');
+    const lots = parseCsvFile(csv);
+    expect(lots).toHaveLength(1);
+    expect(lots[0].totalCostBasisUsd).toBe(2616.73);
+    expect(lots[0].costBasisPerShareUsd).toBe(333.15);
+    expect(lots[0].currentValueUsd).toBe(3331.56);
+  });
+
+  it('parses cents-without-decimal format with internal space thousand separators', () => {
+    // Real Fidelity output: "2 61673" means $2616.73 (space = thousand separator).
+    const csv = [
+      HEADER,
+      "Mar-31-2026,7.8545,2 61673,33315,3 33156,71484,-,-,Jan-02-2026,SP,Short",
+    ].join('\n');
+    const lots = parseCsvFile(csv);
+    expect(lots).toHaveLength(1);
+    expect(lots[0].totalCostBasisUsd).toBe(2616.73);
+    expect(lots[0].costBasisPerShareUsd).toBe(333.15);
+    expect(lots[0].currentValueUsd).toBe(3331.56);
+  });
+
   it('parses real Fidelity positions CSV', () => {
     const csv = [
       "Date d'acquisition,Quantité,Prix de revient,Prix de revient&nbsp;/ action,Valeur,Plus-value/Moins-value,Date de disponibilité à la vente,Date de disponibilité pour transfert,Date d'attribution,Origine des actions,Période de détention",
-      'Mar-31-2026,6.4936,2163,333,2745,582,-,-,Jan-02-2026,SP,Short',
-      'Dec-31-2025,4.9060,2135,435,2074,-61,-,-,Oct-01-2025,SP,Short',
+      'Mar-31-2026,6.4936,216300,33300,274500,58200,-,-,Jan-02-2026,SP,Short',
+      'Dec-31-2025,4.9060,213500,43500,207400,-6100,-,-,Oct-01-2025,SP,Short',
       ',',
       'Les valeurs sont affichées en USD',
     ].join('\n');
