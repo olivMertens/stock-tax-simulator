@@ -52,6 +52,7 @@ export interface SaleLotEntry {
   lot: StockLot;
   quantitySold: number;
   salePricePerShare: number;
+  saleDate?: Date;
 }
 
 export interface SaleSimulation {

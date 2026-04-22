@@ -84,6 +84,7 @@ function soldLotsToSaleEntries(soldLots: SoldLot[]): SaleLotEntry[] {
       lot: syntheticLot,
       quantitySold: sl.quantity,
       salePricePerShare,
+      saleDate: sl.saleDate,
     };
   });
 }

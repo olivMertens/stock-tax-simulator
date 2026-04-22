@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talking Points — Simulateur Fiscal MSFT</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --accent3: #34d399;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --highlight: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: .35rem;
+  }
+  header p { color: var(--muted); font-size: .9rem; }
+  .punchline {
+    background: linear-gradient(135deg, #1e3a5f, #1e293b);
+    border-left: 4px solid var(--highlight);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2.5rem;
+    font-size: .95rem;
+    color: #fde68a;
+    font-style: italic;
+  }
+  .pillar {
+    margin-bottom: 2rem;
+  }
+  .pillar-header {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: 1rem;
+  }
+  .pillar-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .pillar-icon.tech { background: rgba(56,189,248,.15); color: var(--accent); }
+  .pillar-icon.fiscal { background: rgba(129,140,248,.15); color: var(--accent2); }
+  .pillar-icon.ops { background: rgba(52,211,153,.15); color: var(--accent3); }
+  .pillar-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .pillar-header h2 .sub {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: .85rem;
+    display: block;
+    margin-top: 2px;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .65rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .85rem 1.1rem;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 {
+    font-size: .88rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: .3rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+  .card h3 .num {
+    background: var(--border);
+    color: var(--muted);
+    font-size: .7rem;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card p {
+    font-size: .82rem;
+    color: var(--muted);
+    margin: 0;
+  }
+  .card .tag {
+    display: inline-block;
+    font-size: .7rem;
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin-right: 4px;
+    font-weight: 500;
+  }
+  .tag.react { background: rgba(56,189,248,.12); color: var(--accent); }
+  .tag.ts { background: rgba(56,189,248,.12); color: #7dd3fc; }
+  .tag.azure { background: rgba(56,189,248,.12); color: #38bdf8; }
+  .tag.security { background: rgba(251,191,36,.12); color: #fbbf24; }
+  .tag.api { background: rgba(129,140,248,.12); color: var(--accent2); }
+  .tag.test { background: rgba(52,211,153,.12); color: var(--accent3); }
+  .tag.pdf { background: rgba(251,113,133,.12); color: #fb7185; }
+  .tag.fiscal { background: rgba(129,140,248,.12); color: #a5b4fc; }
+  .tag.product { background: rgba(52,211,153,.12); color: #6ee7b7; }
+  .tag.ai { background: rgba(251,191,36,.12); color: #fde68a; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: .6rem;
+    margin-bottom: 2.5rem;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    text-align: center;
+  }
+  .stat .value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .stat .label {
+    font-size: .72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: .75rem;
+  }
+
+  @media (min-width: 640px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+  }
+  @media print {
+    body { background: #fff; color: #1e293b; padding: 1rem; }
+    .card { border-color: #e2e8f0; }
+    .card h3 { color: #0f172a; }
+    .card p { color: #475569; }
+    .punchline { background: #fffbeb; color: #92400e; }
+    .stat { border-color: #e2e8f0; }
+    .stat .value { color: #0f172a; }
+    .pillar-header h2 { color: #0f172a; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Ce que j'ai appris en créant le Simulateur Fiscal MSFT</h1>
+  <p>Aide-mémoire — Échange N+3 · Avril 2026</p>
+</header>
+
+<div class="punchline">
+  « Sans être ni développeur ni fiscaliste, j'ai construit un simulateur fiscal complet — stack moderne, testé, sécurisé, déployé sur Azure — qui résout un vrai problème pour les employés Microsoft France. Ce projet illustre comment l'IA démocratise la capacité à créer des outils à impact, et comment la curiosité + la rigueur permettent de maîtriser un domaine métier complexe. »
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="value">~3 000+</div><div class="label">Lignes TypeScript</div></div>
+  <div class="stat"><div class="value">9</div><div class="label">Fichiers de tests</div></div>
+  <div class="stat"><div class="value">12</div><div class="label">Composants React</div></div>
+  <div class="stat"><div class="value">3</div><div class="label">APIs intégrées</div></div>
+  <div class="stat"><div class="value">4</div><div class="label">Régimes fiscaux</div></div>
+  <div class="stat"><div class="value">3</div><div class="label">Années fiscales</div></div>
+</div>
+
+<!-- TECHNIQUE -->
+<div class="pillar">
+  <div class="pillar-header">
+    <div class="pillar-icon tech">⚙</div>
+    <h2>Plan technique <span class="sub">Construire un produit logiciel de bout en bout</span></h2>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3><span class="num">1</span> Stack moderne</h3>
+      <p><span class="tag react">React 19</span><span class="tag ts">TypeScript 6</span><span class="tag react">Vite 8</span><span class="tag react">Tailwind 4</span></p>
+      <p>Lazy-loading, memoization, custom hooks, Error Boundary — patterns de production, pas un prototype.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">2</span> Architecture modulaire</h3>
+      <p>Moteur fiscal séparé de l'UI en 6 modules indépendants. Logique métier testable sans composants graphiques.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">3</span> Tests automatisés</h3>
+      <p><span class="tag test">Vitest</span><span class="tag test">Testing Library</span></p>
+      <p>9 fichiers de tests : moteur fiscal, parser CSV, déclaration, stockage, taux ECB, parser avis d'imposition, composants.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">4</span> Intégration d'APIs</h3>
+      <p><span class="tag api">ECB</span><span class="tag api">Finnhub</span><span class="tag azure">Azure Function</span></p>
+      <p>Taux EUR/USD historiques (ECB), cours MSFT live (Finnhub via proxy serverless). Cache intelligent côté client et serveur.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">5</span> Sécurité web</h3>
+      <p><span class="tag security">CSP</span><span class="tag security">X-Frame-Options</span><span class="tag security">Permissions-Policy</span></p>
+      <p>Headers OWASP, clé API protégée côté serveur, worker PDF local (pas de CDN tiers).</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">6</span> PWA & offline</h3>
+      <p>Service Worker, manifest, cache-first pour les assets. L'app est installable sur mobile.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">7</span> Parsing avancé</h3>
+      <p><span class="tag pdf">PDF (pdfjs)</span><span class="tag ts">CSV (PapaParse)</span></p>
+      <p>Import CSV Fidelity avec réassemblage des séparateurs de milliers. Extraction d'avis d'imposition PDF via coordonnées XY.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">8</span> Persistance versionnée</h3>
+      <p>Schéma de données versionné dans localStorage avec migration automatique et validation/sanitisation des entrées.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FISCAL -->
+<div class="pillar">
+  <div class="pillar-header">
+    <div class="pillar-icon fiscal">§</div>
+    <h2>Plan fonctionnel / fiscal <span class="sub">Maîtriser un domaine métier complexe sans être fiscaliste</span></h2>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3><span class="num">1</span> 4 régimes de stock awards</h3>
+      <p><span class="tag fiscal">ESPP</span><span class="tag fiscal">Stock Award</span><span class="tag fiscal">AGA Macron</span><span class="tag fiscal">AGA pré-Macron</span></p>
+      <p>Chaque type a un traitement fiscal distinct (gain d'acquisition, abattements, PS activité vs patrimoine).</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">2</span> Double imposition</h3>
+      <p>Séparation gain d'acquisition / plus-value de cession. Imputation croisée des moins-values sur le gain d'acquisition.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">3</span> PFU vs barème progressif</h3>
+      <p>Comparateur automatique avec parts fiscales, quotient familial, CSG déductible, abattement durée de détention, CEHR.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">4</span> Barèmes multi-exercices</h3>
+      <p><span class="tag fiscal">2024</span><span class="tag fiscal">2025</span><span class="tag fiscal">2026</span></p>
+      <p>Tranches IR, hausse CSG 2025 (PS patrimoine 17.2% → 18.6%), seuil AGA 300k€, CEHR, plafond QF.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">5</span> Aide à la déclaration</h3>
+      <p>Génération automatique des cases 2042, 2042-C et formulaire 2074 (3VG, 3VH, 1TZ, 1WZ, 1TT, 2OP, 3SG…).</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">6</span> Conversion EUR/USD réglementaire</h3>
+      <p>Taux BCE au jour de l'acquisition pour chaque lot. Gestion week-ends/jours fériés avec look-back 7 jours.</p>
+    </div>
+  </div>
+</div>
+
+<!-- OPÉRATIONNEL -->
+<div class="pillar">
+  <div class="pillar-header">
+    <div class="pillar-icon ops">▶</div>
+    <h2>Plan opérationnel <span class="sub">Mener un projet produit en autonomie</span></h2>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <h3><span class="num">1</span> Identification du pain point</h3>
+      <p>Complexité fiscale réelle des employés MSFT France (4 plans, double imposition, conversion USD). Aucun outil interne existant.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">2</span> Product thinking</h3>
+      <p><span class="tag product">Flux complet</span></p>
+      <p>Import Fidelity → Import avis d'impôt → Simulation temps réel → Comparaison régimes → Instructions déclaration. End-to-end.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">3</span> Déploiement Azure</h3>
+      <p><span class="tag azure">Static Web Apps</span><span class="tag azure">Azure Functions</span></p>
+      <p>Utilisation de l'écosystème Microsoft de bout en bout. CI/CD intégré.</p>
+    </div>
+    <div class="card">
+      <h3><span class="num">4</span> IA comme levier</h3>
+      <p><span class="tag ai">GitHub Copilot</span></p>
+      <p>En tant que non-dev, piloter la création d'une app de 3 000+ lignes testées et déployées. Cas d'usage concret de l'IA comme multiplicateur de capacité.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Simulateur Fiscal MSFT Stocks · Généré le 21 avril 2026
+</footer>
+
+</div>
+</body>
+</html>

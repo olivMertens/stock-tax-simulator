@@ -38,7 +38,7 @@ export function generateDeclaration(
       FQ: 'AGA pré-Macron',
     };
     return {
-      date: new Date().toLocaleDateString('fr-FR'),
+      date: (entry.saleDate ?? new Date()).toLocaleDateString('fr-FR'),
       quantity: entry.quantitySold,
       origin: originLabels[entry.lot.origin] || entry.lot.origin,
       salePrice: entry.salePricePerShare,
