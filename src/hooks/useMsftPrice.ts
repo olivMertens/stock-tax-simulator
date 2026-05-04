@@ -71,8 +71,10 @@ export function useMsftPrice(): MsftPriceResult {
     }
   }, []);
 
-  // Auto-fetch on mount.
+  // Auto-fetch on mount. Calling fetchPrice triggers a setState chain inside
+  // an async network handler — that is the whole point of this hook.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPrice();
   }, [fetchPrice]);
 

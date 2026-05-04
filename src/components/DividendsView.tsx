@@ -22,10 +22,12 @@ export function DividendsView({ dividends, cashInterest }: DividendsViewProps) {
   const [ratesError, setRatesError] = React.useState<string | null>(null);
 
   // Fetching ECB rates is a network side effect; the synchronous setState
-  // calls before the await are intentional (loading + error reset).
+  // calls before the await (loading + error reset) are intentional UX wiring,
+  // not a state derivation — disable the rule locally.
   React.useEffect(() => {
     if (dividends.length === 0) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRatesLoading(true);
     setRatesError(null);
     fetchECBRates(dividends.map((d) => d.date))
