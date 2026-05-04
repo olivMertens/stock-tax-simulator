@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTransactionHistoryCsv } from '../transaction-parser';
+import { parseTransactionHistoryCsv } from '../brokers/fidelity/transactions-parser';
 
 const HEADER = "Date de transaction,Type de transaction,Nom de l'investissement,Actions,Montant";
 

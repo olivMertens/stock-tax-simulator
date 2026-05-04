@@ -4,10 +4,21 @@
 // Dates are stored as ISO strings and re-hydrated on import. Unknown/invalid
 // fields are rejected to keep the runtime state consistent.
 
-import type { AppSettings, StockLot, SoldLot, SavedSimulation } from './types';
+import type { AppSettings, Broker, StockLot, SoldLot, SavedSimulation } from './types';
 import { validateSettings } from './storage';
 
-const BACKUP_VERSION = 1;
+// v1: original schema (Fidelity-only, no `broker` field).
+// v2: added `broker` on every StockLot and SoldLot. v1 backups are still
+//     accepted; lots without a `broker` field are migrated as 'fidelity'.
+const BACKUP_VERSION = 2;
+
+const VALID_BROKERS: readonly Broker[] = ['fidelity', 'morgan_stanley'];
+
+function validateBroker(raw: unknown): Broker {
+  return typeof raw === 'string' && (VALID_BROKERS as readonly string[]).includes(raw)
+    ? (raw as Broker)
+    : 'fidelity';
+}
 
 export interface BackupPayload {
   version: number;
@@ -81,6 +92,7 @@ function validateLot(raw: unknown): StockLot | null {
 
   return {
     id: raw.id,
+    broker: validateBroker(raw.broker),
     acquisitionDate: acq,
     quantity: raw.quantity,
     costBasisPerShare: Number(raw.costBasisPerShare) || 0,
@@ -113,6 +125,7 @@ function validateSoldLot(raw: unknown): SoldLot | null {
 
   return {
     id: raw.id,
+    broker: validateBroker(raw.broker),
     acquisitionDate: acq,
     saleDate: sale,
     quantity: raw.quantity,

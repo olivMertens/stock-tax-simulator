@@ -5,6 +5,12 @@
   --color-primary-hover: #106EBE;
 }
 
+/* Reserve room for the vertical scrollbar so centered content does not jump
+   horizontally when switching between long and short tabs (Windows). */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

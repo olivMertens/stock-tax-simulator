@@ -16,11 +16,13 @@ interface BackupPanelProps {
   current: BackupInput;
   defaults: AppSettings;
   onImport: (result: ImportResult) => void;
+  /** When true, render bare body without the outer Card (parent provides one). */
+  embedded?: boolean;
 }
 
 const MAX_BACKUP_SIZE = 10 * 1024 * 1024; // 10 MB — generous; a typical backup is < 100 KB
 
-export function BackupPanel({ current, defaults, onImport }: BackupPanelProps) {
+export function BackupPanel({ current, defaults, onImport, embedded = false }: BackupPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = React.useState<ImportResult | null>(null);
   const [status, setStatus] = React.useState<
@@ -90,18 +92,8 @@ export function BackupPanel({ current, defaults, onImport }: BackupPanelProps) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5" />
-          Sauvegarde &amp; restauration
-        </CardTitle>
-        <CardDescription>
-          Vos données sont stockées localement dans ce navigateur. Exportez une sauvegarde pour les transférer sur un autre appareil ou les conserver en sécurité.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+  const body = (
+    <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -160,28 +152,53 @@ export function BackupPanel({ current, defaults, onImport }: BackupPanelProps) {
             {status.message}
           </p>
         )}
-      </CardContent>
+    </div>
+  );
 
-      {/* Confirmation dialog — replaces window.confirm() for a cleaner UX */}
-      <Dialog open={pendingImport !== null} onClose={cancelImport}>
-        <DialogHeader>
-          <p className="font-semibold text-gray-900 mb-1">Restaurer cette sauvegarde ?</p>
-          <p>
-            Vos données actuelles seront <strong>remplacées</strong> par :{' '}
-            {pendingImport?.lots.length ?? 0} position{(pendingImport?.lots.length ?? 0) > 1 ? 's' : ''},{' '}
-            {pendingImport?.soldLots.length ?? 0} vente{(pendingImport?.soldLots.length ?? 0) > 1 ? 's' : ''}.
-          </p>
-          <p className="mt-2 text-xs text-gray-500">Cette action ne peut pas être annulée.</p>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={cancelImport}>
-            Annuler
-          </Button>
-          <Button onClick={confirmImport}>
-            Remplacer mes données
-          </Button>
-        </DialogFooter>
-      </Dialog>
+  const dialog = (
+    <Dialog open={pendingImport !== null} onClose={cancelImport}>
+      <DialogHeader>
+        <p className="font-semibold text-gray-900 mb-1">Restaurer cette sauvegarde ?</p>
+        <p>
+          Vos données actuelles seront <strong>remplacées</strong> par :{' '}
+          {pendingImport?.lots.length ?? 0} position{(pendingImport?.lots.length ?? 0) > 1 ? 's' : ''},{' '}
+          {pendingImport?.soldLots.length ?? 0} vente{(pendingImport?.soldLots.length ?? 0) > 1 ? 's' : ''}.
+        </p>
+        <p className="mt-2 text-xs text-gray-500">Cette action ne peut pas être annulée.</p>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={cancelImport}>
+          Annuler
+        </Button>
+        <Button onClick={confirmImport}>
+          Remplacer mes données
+        </Button>
+      </DialogFooter>
+    </Dialog>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {body}
+        {dialog}
+      </>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5" />
+          Sauvegarde &amp; restauration
+        </CardTitle>
+        <CardDescription>
+          Vos données sont stockées localement dans ce navigateur. Exportez une sauvegarde pour les transférer sur un autre appareil ou les conserver en sécurité.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>{body}</CardContent>
+      {dialog}
     </Card>
   );
 }

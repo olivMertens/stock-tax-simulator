@@ -19,6 +19,7 @@ const DEFAULTS: AppSettings = {
 
 const LOT: StockLot = {
   id: 'lot-1',
+  broker: 'fidelity',
   acquisitionDate: new Date(2023, 5, 15),
   quantity: 100,
   costBasisPerShare: 200,
@@ -32,6 +33,7 @@ const LOT: StockLot = {
 
 const SOLD: SoldLot = {
   id: 'sold-1',
+  broker: 'fidelity',
   acquisitionDate: new Date(2022, 0, 10),
   saleDate: new Date(2025, 5, 20),
   quantity: 50,
@@ -65,7 +67,7 @@ describe('exportToJsonString', () => {
     const json = exportToJsonString(makeInput());
     const parsed = JSON.parse(json);
     expect(parsed.app).toBe('stock-tax-simulator');
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(2);
     expect(typeof parsed.exportedAt).toBe('string');
     expect(parsed.lots).toHaveLength(1);
     expect(parsed.soldLots).toHaveLength(1);
@@ -106,6 +108,48 @@ describe('importFromJsonString', () => {
   it('throws on unsupported future version', () => {
     const payload = JSON.stringify({ version: 999, app: 'stock-tax-simulator', settings: DEFAULTS, lots: [], soldLots: [] });
     expect(() => importFromJsonString(payload, DEFAULTS)).toThrow(/version/i);
+  });
+
+  it('accepts v1 backups (no broker field) and defaults broker to fidelity', () => {
+    const v1Lot = {
+      id: 'legacy-lot',
+      acquisitionDate: new Date(2023, 5, 15).toISOString(),
+      quantity: 10,
+      costBasisPerShare: 100,
+      totalCostBasis: 1000,
+      currentValue: 1500,
+      unrealizedGainLoss: 500,
+      origin: 'FM',
+      holdingPeriod: 'Long',
+      planType: 'qualified_macron',
+    };
+    const v1Sold = {
+      id: 'legacy-sold',
+      acquisitionDate: new Date(2022, 0, 10).toISOString(),
+      saleDate: new Date(2025, 5, 20).toISOString(),
+      quantity: 50,
+      proceeds: 25000,
+      costBasis: 15000,
+      gainLoss: 10000,
+      holdingPeriod: 'Long',
+      origin: 'DO',
+      planType: 'qualified_macron',
+    };
+    const payload = JSON.stringify({
+      version: 1,
+      app: 'stock-tax-simulator',
+      exportedAt: new Date().toISOString(),
+      settings: DEFAULTS,
+      lots: [v1Lot],
+      soldLots: [v1Sold],
+      savedSimulations: [],
+    });
+
+    const result = importFromJsonString(payload, DEFAULTS);
+    expect(result.lots).toHaveLength(1);
+    expect(result.lots[0].broker).toBe('fidelity');
+    expect(result.soldLots).toHaveLength(1);
+    expect(result.soldLots[0].broker).toBe('fidelity');
   });
 
   it('throws on non-object root', () => {

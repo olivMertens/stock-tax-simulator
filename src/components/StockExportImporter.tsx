@@ -1,9 +1,9 @@
 import React from 'react';
-import { Upload, RefreshCw, FileCheck, Trash2, AlertTriangle, Award, HelpCircle } from 'lucide-react';
-import { Button } from './ui/button';
+import { FileCheck, Trash2, AlertTriangle, Award, HelpCircle } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Alert } from './ui/alert';
 import { Select } from './ui/select';
+import { FileDropZone } from './ui/FileDropZone';
 import { BrokerExportGuide } from './guides/BrokerExportGuide';
 import { stockexportGuide } from './guides/stockexport-steps';
 import { parseStockExportFile, hashGrantIds } from '../lib/stockexport-parser';
@@ -18,6 +18,8 @@ interface StockExportImporterProps {
   /** Fallback plan type applied to DO lots when no StockExport is imported. */
   defaultPlanType?: DoPlanType;
   onDefaultPlanTypeChange?: (value: DoPlanType) => void;
+  /** When true, render without the outer Card wrapper (DataPanel provides one). */
+  embedded?: boolean;
 }
 
 /**
@@ -33,17 +35,15 @@ export function StockExportImporter({
   onGrantsChange,
   defaultPlanType,
   onDefaultPlanTypeChange,
+  embedded = false,
 }: StockExportImporterProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [warnings, setWarnings] = React.useState<string[]>([]);
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [showGuide, setShowGuide] = React.useState(false);
-  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFile = async (file: File) => {
     setError(null);
     setWarnings([]);
     setFileName(file.name);
@@ -62,7 +62,6 @@ export function StockExportImporter({
       setError('Impossible de lire le fichier : ' + (err as Error).message);
     } finally {
       setLoading(false);
-      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
@@ -85,63 +84,50 @@ export function StockExportImporter({
     );
   }, [grants]);
 
-  return (
-    <Card>
-      <CardContent className="pt-5 pb-4 space-y-4">
-        <div className="flex items-start gap-3">
-          <Award className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0 text-sm text-gray-600">
-            <p>
-              Importez votre <strong>StockExport Microsoft</strong> (.xlsx) pour qualifier automatiquement
-              vos lots (AGA Macron, Stock Award, ESPP…) à partir du type réel de chaque grant.
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Sans cet import, l'app utilise des valeurs par défaut modifiables à la main. Les identifiants
-              de grant ne sont jamais stockés en clair — uniquement un hash SHA-256.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => inputRef.current?.click()}
-            disabled={loading}
-            className="gap-1.5"
-          >
-            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {loading ? 'Analyse…' : 'Choisir un fichier'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowGuide(true)}
-            className="gap-1.5"
-            aria-label="Afficher le guide de téléchargement du StockExport"
-          >
-            <HelpCircle className="h-4 w-4" />
-            Comment le télécharger ?
-          </Button>
+  const body = (
+    <div className="space-y-4">
+        {/* Top meta-action bar: clear (when data) + help. Mirrors the broker
+            cards so all four "Mes donnees" blocks share a single rhythm. */}
+        <div className="flex items-center justify-end gap-2">
           {grants.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
+              type="button"
               onClick={handleClear}
-              className="gap-1.5 text-red-600 hover:text-red-700 ml-auto"
+              aria-label="Supprimer les grants importés"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors whitespace-nowrap shrink-0"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               Supprimer
-            </Button>
+            </button>
           )}
+          <button
+            type="button"
+            onClick={() => setShowGuide(true)}
+            aria-label="Voir le guide d'export"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors whitespace-nowrap shrink-0"
+          >
+            <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+            Voir le guide d&rsquo;export
+          </button>
         </div>
 
-        <input
-          ref={inputRef}
-          type="file"
+        {/* Prerequisite banner: replaces the gray paragraph so the section
+            opens with the same coloured-banner contract as the broker cards. */}
+        <div className="flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-900">
+          <Award className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span>
+            Fichier <strong>StockExport Microsoft</strong> (.xlsx) pour qualifier automatiquement
+            vos lots (AGA Macron, Stock Award, ESPP…). Les identifiants de grant ne quittent jamais
+            votre appareil — seul un hash SHA-256 est stocké.
+          </span>
+        </div>
+
+        <FileDropZone
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          className="hidden"
-          onChange={handleFile}
+          onFile={handleFile}
+          loading={loading}
+          prompt="Glissez votre fichier StockExport (.xlsx) ici ou cliquez pour parcourir"
+          fileName={fileName}
         />
 
         <BrokerExportGuide
@@ -219,7 +205,13 @@ export function StockExportImporter({
             </div>
           </div>
         )}
-      </CardContent>
+    </div>
+  );
+
+  if (embedded) return body;
+  return (
+    <Card>
+      <CardContent className="pt-5 pb-4">{body}</CardContent>
     </Card>
   );
 }

@@ -2,25 +2,38 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Select } from './ui/select';
 import { Alert } from './ui/alert';
 import { Badge } from './ui/badge';
-import { Calculator, ShoppingCart, Filter } from 'lucide-react';
-import type { StockLot, SaleLotEntry, AppSettings, StockOrigin } from '../lib/types';
+import { Calculator, ShoppingCart } from 'lucide-react';
+import type { StockLot, SaleLotEntry, AppSettings, StockOrigin, Broker } from '../lib/types';
 import { formatEUR, formatUSD, formatDate, originLabel } from '../lib/utils';
 import { useMsftPrice } from '../hooks/useMsftPrice';
 import { ErrorFallback } from './ErrorFallback';
+import { BrokerLogo } from './BrokerLogo';
 
 interface SaleSimulatorProps {
   lots: StockLot[];
   settings: AppSettings;
   onSimulate: (entries: SaleLotEntry[]) => void;
+  /**
+   * Optional callback invoked when the lot selection or quantities change
+   * after the very first render. Used by the parent to mark a previous
+   * simulation as "stale" and prompt the user to re-run the calculation.
+   */
+  onSelectionChange?: () => void;
 }
 
-export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulate }: SaleSimulatorProps) {
+export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulate, onSelectionChange }: SaleSimulatorProps) {
   const [selectedLots, setSelectedLots] = React.useState<Record<string, { quantity: number; price: number }>>({});
   const [defaultPrice, setDefaultPrice] = React.useState<number>(0);
   const [priceInput, setPriceInput] = React.useState<string>('0');
+  // Tracks whether the user has manually edited the price input. Once true,
+  // the live-price sync effect must not overwrite their value.
+  const hasUserEditedPriceRef = React.useRef(false);
   const [originFilter, setOriginFilter] = React.useState<StockOrigin | 'all'>('all');
+  const [brokerFilter, setBrokerFilter] = React.useState<Broker | 'all'>('all');
+  const [holdingFilter, setHoldingFilter] = React.useState<'all' | 'Long' | 'Short'>('all');
 
   const {
     usdPrice: livePriceUsd,
@@ -33,9 +46,11 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
     retry: retryPrice,
   } = useMsftPrice();
 
-  // Sync EUR price to default price when fetched
+  // Sync EUR price to default price when fetched — but only if the user
+  // hasn't typed anything yet. Otherwise their input would be stomped on
+  // every refetch.
   React.useEffect(() => {
-    if (livePriceEur !== null) {
+    if (livePriceEur !== null && !hasUserEditedPriceRef.current) {
       const rounded = Math.round(livePriceEur * 100) / 100;
       setDefaultPrice(rounded);
       setPriceInput(String(rounded));
@@ -94,7 +109,18 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
   };
 
   const availableLots = lots.filter((lot) => !(lot.availableForSaleDate && lot.availableForSaleDate > new Date()));
-  const filteredLots = originFilter === 'all' ? availableLots : availableLots.filter((lot) => lot.origin === originFilter);
+  const filteredLots = React.useMemo(() => availableLots.filter((lot) => {
+    if (originFilter !== 'all' && lot.origin !== originFilter) return false;
+    if (brokerFilter !== 'all' && lot.broker !== brokerFilter) return false;
+    if (holdingFilter !== 'all' && lot.holdingPeriod !== holdingFilter) return false;
+    return true;
+  }), [availableLots, originFilter, brokerFilter, holdingFilter]);
+  const isFiltered = originFilter !== 'all' || brokerFilter !== 'all' || holdingFilter !== 'all';
+  const resetFilters = () => {
+    setOriginFilter('all');
+    setBrokerFilter('all');
+    setHoldingFilter('all');
+  };
   const allSelected = filteredLots.length > 0 && filteredLots.every((lot) => !!selectedLots[lot.id]);
 
   const toggleSelectAll = () => {
@@ -121,11 +147,30 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
     }
   };
 
-  // Distinct origins present in lots
+  // Distinct origins/brokers present in lots
   const origins = React.useMemo(() => {
     const set = new Set(lots.map((l) => l.origin));
     return Array.from(set).sort();
   }, [lots]);
+  const brokers = React.useMemo(() => {
+    const set = new Set(lots.map((l) => l.broker)) as Set<Broker>;
+    return Array.from(set).sort();
+  }, [lots]);
+
+  // Show the broker column only when lots span multiple brokers; with a single
+  // broker the BrokerSection on the data tab already conveys the courtier.
+  const hasMultipleBrokers = brokers.length > 1;
+
+  // Notify parent when the selection mutates after first render. We skip the
+  // initial mount so we don't fire before the user has done anything.
+  const initialMountRef = React.useRef(true);
+  React.useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      return;
+    }
+    onSelectionChange?.();
+  }, [selectedLots, onSelectionChange]);
 
   const handleSimulate = () => {
     const entries: SaleLotEntry[] = [];
@@ -157,7 +202,7 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
   });
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-28">
       {hasNonQualifiedDO && (
         <Alert variant="warning">
           <strong>Lots non qualifiés sélectionnés :</strong> Le gain d'acquisition est déjà inclus dans votre salaire imposable (case 1AJ). Vérifiez votre bulletin de paie.
@@ -178,33 +223,49 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
               <ShoppingCart className="h-5 w-5" />
               Sélectionner les lots à vendre
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setOriginFilter('all')}
-                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                    originFilter === 'all'
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                  }`}
+            <div className="flex flex-wrap items-center gap-2">
+              {hasMultipleBrokers && (
+                <Select
+                  aria-label="Filtrer par courtier"
+                  value={brokerFilter}
+                  onChange={(e) => setBrokerFilter(e.target.value as Broker | 'all')}
+                  className="h-8 text-xs w-36"
                 >
-                  Tous
-                </button>
+                  <option value="all">Tous courtiers</option>
+                  {brokers.map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </Select>
+              )}
+              <Select
+                aria-label="Filtrer par type"
+                value={originFilter}
+                onChange={(e) => setOriginFilter(e.target.value as StockOrigin | 'all')}
+                className="h-8 text-xs w-36"
+              >
+                <option value="all">Toutes origines</option>
                 {origins.map((o) => (
-                  <button
-                    key={o}
-                    onClick={() => setOriginFilter(o)}
-                    className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                      originFilter === o
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {originLabel(o)}
-                  </button>
+                  <option key={o} value={o}>{originLabel(o)}</option>
                 ))}
-              </div>
+              </Select>
+              <Select
+                aria-label="Filtrer par détention"
+                value={holdingFilter}
+                onChange={(e) => setHoldingFilter(e.target.value as 'all' | 'Long' | 'Short')}
+                className="h-8 text-xs w-36"
+              >
+                <option value="all">Toutes détentions</option>
+                <option value="Long">≥ 2 ans</option>
+                <option value="Short">&lt; 2 ans</option>
+              </Select>
+              {isFiltered && (
+                <Button variant="ghost" size="sm" onClick={resetFilters} className="h-8 text-xs">
+                  Réinitialiser
+                </Button>
+              )}
+              <span className="text-xs text-gray-500 ml-1">
+                {filteredLots.length} / {availableLots.length} lots
+              </span>
             </div>
           </div>
 
@@ -266,7 +327,10 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                 step="0.01"
                 min="0"
                 value={priceInput}
-                onChange={(e) => setPriceInput(e.target.value)}
+                onChange={(e) => {
+                  hasUserEditedPriceRef.current = true;
+                  setPriceInput(e.target.value);
+                }}
                 placeholder="Ex: 420.00"
                 className="w-32 h-8 text-sm"
               />
@@ -287,10 +351,12 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                       checked={allSelected}
                       onChange={toggleSelectAll}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      title={allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+                      aria-label={allSelected ? `Désélectionner les ${filteredLots.length} lots filtrés` : `Sélectionner les ${filteredLots.length} lots filtrés`}
+                      title={allSelected ? `Désélectionner les ${filteredLots.length} lots filtrés` : `Sélectionner les ${filteredLots.length} lots filtrés`}
                     />
                   </th>
                   <th className="text-left p-3 font-medium">Date acq.</th>
+                  {hasMultipleBrokers && <th className="text-center p-3 font-medium">Courtier</th>}
                   <th className="text-center p-3 font-medium">Origine</th>
                   <th className="text-right p-3 font-medium">Disponible</th>
                   <th className="text-right p-3 font-medium">Prix revient</th>
@@ -329,6 +395,11 @@ export const SaleSimulator = React.memo(function SaleSimulator({ lots, onSimulat
                         {formatDate(lot.acquisitionDate)}
                         {notAvailable && <span className="block text-xs text-amber-600">Non disponible</span>}
                       </td>
+                      {hasMultipleBrokers && (
+                        <td className="p-3 text-center">
+                          <BrokerLogo broker={lot.broker} className="h-5 mx-auto" />
+                        </td>
+                      )}
                       <td className="p-3 text-center">
                         <Badge variant={lot.origin === 'SP' ? 'secondary' : 'default'}>
                           {originLabel(lot.origin)}

@@ -9,7 +9,7 @@ import {
 describe('enrichDividendsWithEur', () => {
   it('converts USD amounts to EUR at the date rate', () => {
     const events = [
-      { date: new Date(2025, 11, 11), grossUsd: 100, taxWithheldUsd: 15, netUsd: 85 },
+      { broker: 'fidelity' as const, date: new Date(2025, 11, 11), grossUsd: 100, taxWithheldUsd: 15, netUsd: 85 },
     ];
     const rates = { '2025-12-11': 1.1 };
     const { enriched, missingDates } = enrichDividendsWithEur(events, rates);
@@ -22,8 +22,8 @@ describe('enrichDividendsWithEur', () => {
 
   it('reports missing dates and skips them', () => {
     const events = [
-      { date: new Date(2025, 0, 1), grossUsd: 10, taxWithheldUsd: 0, netUsd: 10 },
-      { date: new Date(2025, 5, 15), grossUsd: 20, taxWithheldUsd: 0, netUsd: 20 },
+      { broker: 'fidelity' as const, date: new Date(2025, 0, 1), grossUsd: 10, taxWithheldUsd: 0, netUsd: 10 },
+      { broker: 'fidelity' as const, date: new Date(2025, 5, 15), grossUsd: 20, taxWithheldUsd: 0, netUsd: 20 },
     ];
     const { enriched, missingDates } = enrichDividendsWithEur(events, { '2025-01-01': 1.08 });
     expect(enriched).toHaveLength(1);
@@ -34,9 +34,9 @@ describe('enrichDividendsWithEur', () => {
 describe('groupDividendsByYear', () => {
   it('aggregates by calendar year', () => {
     const enriched = [
-      { date: new Date(2024, 2, 11), grossUsd: 50, taxWithheldUsd: 7.5, netUsd: 42.5, grossEur: 46, taxWithheldEur: 6.9, netEur: 39.1, eurUsdRate: 1.087 },
-      { date: new Date(2025, 2, 13), grossUsd: 55, taxWithheldUsd: 8.25, netUsd: 46.75, grossEur: 50, taxWithheldEur: 7.5, netEur: 42.5, eurUsdRate: 1.1 },
-      { date: new Date(2025, 11, 11), grossUsd: 60, taxWithheldUsd: 9, netUsd: 51, grossEur: 54.55, taxWithheldEur: 8.18, netEur: 46.37, eurUsdRate: 1.1 },
+      { broker: 'fidelity' as const, date: new Date(2024, 2, 11), grossUsd: 50, taxWithheldUsd: 7.5, netUsd: 42.5, grossEur: 46, taxWithheldEur: 6.9, netEur: 39.1, eurUsdRate: 1.087 },
+      { broker: 'fidelity' as const, date: new Date(2025, 2, 13), grossUsd: 55, taxWithheldUsd: 8.25, netUsd: 46.75, grossEur: 50, taxWithheldEur: 7.5, netEur: 42.5, eurUsdRate: 1.1 },
+      { broker: 'fidelity' as const, date: new Date(2025, 11, 11), grossUsd: 60, taxWithheldUsd: 9, netUsd: 51, grossEur: 54.55, taxWithheldEur: 8.18, netEur: 46.37, eurUsdRate: 1.1 },
     ];
     const groups = groupDividendsByYear(enriched);
     expect(groups).toHaveLength(2);
@@ -71,8 +71,8 @@ describe('buildDeclarationLines', () => {
 describe('totalCashInterestUsd', () => {
   it('sums cash-sweep interest', () => {
     const events = [
-      { date: new Date(2025, 5, 30), amountUsd: 7.52 },
-      { date: new Date(2025, 11, 31), amountUsd: 0.31 },
+      { broker: 'fidelity' as const, date: new Date(2025, 5, 30), amountUsd: 7.52 },
+      { broker: 'fidelity' as const, date: new Date(2025, 11, 31), amountUsd: 0.31 },
     ];
     expect(totalCashInterestUsd(events)).toBe(7.83);
   });

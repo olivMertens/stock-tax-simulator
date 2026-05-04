@@ -7,6 +7,7 @@ import type { SoldLot } from '../../lib/types';
 function makeSold(overrides: Partial<SoldLot> = {}): SoldLot {
   return {
     id: 'sl-1',
+    broker: 'fidelity',
     acquisitionDate: new Date(2022, 5, 10),
     saleDate: new Date(2024, 3, 15),
     quantity: 100,
@@ -53,7 +54,7 @@ describe('SoldLotsTable', () => {
     );
     // Title shows 2 lots for 2024
     expect(screen.getByText(/Ventes effectuées \(2 lots\)/)).toBeDefined();
-    expect(screen.getByText(/d'autres années masquée/i)).toBeDefined();
+    expect(screen.getByText(/masquée/i)).toBeDefined();
   });
 
   it('fires onSoldLotsChange when origin changes', () => {

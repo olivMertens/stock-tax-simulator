@@ -27,6 +27,23 @@ export function UnvestedView({ grants }: UnvestedViewProps) {
   const groups = React.useMemo(() => groupUpcomingVestsByYear(upcoming), [upcoming]);
   const totalShares = totalUpcomingShares(upcoming);
 
+  // All groups collapsed by default; auto-open the only year if there is just one.
+  const [openYears, setOpenYears] = React.useState<Set<number>>(() => {
+    return groups.length === 1 ? new Set([groups[0].year]) : new Set();
+  });
+  const toggleYear = React.useCallback((year: number) => {
+    setOpenYears((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  }, []);
+  const allOpen = groups.length > 0 && groups.every((g) => openYears.has(g.year));
+  const toggleAll = () => {
+    setOpenYears(allOpen ? new Set() : new Set(groups.map((g) => g.year)));
+  };
+
   if (grants.length === 0 || upcoming.length === 0) {
     return null;
   }
@@ -64,8 +81,27 @@ export function UnvestedView({ grants }: UnvestedViewProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {groups.length > 1 && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="text-xs text-gray-600 hover:text-gray-900 underline-offset-2 hover:underline"
+            >
+              {allOpen ? 'Tout replier' : 'Tout déplier'}
+            </button>
+          </div>
+        )}
         {groups.map((g) => (
-          <YearGroup key={g.year} year={g.year} shares={g.shares} events={g.events} eurPrice={eurPrice} />
+          <YearGroup
+            key={g.year}
+            year={g.year}
+            shares={g.shares}
+            events={g.events}
+            eurPrice={eurPrice}
+            open={openYears.has(g.year)}
+            onToggle={() => toggleYear(g.year)}
+          />
         ))}
         <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
           La valorisation est indicative, calculée au cours MSFT actuel
@@ -82,21 +118,23 @@ function YearGroup({
   shares,
   events,
   eurPrice,
+  open,
+  onToggle,
 }: {
   year: number;
   shares: number;
   events: UpcomingVest[];
   eurPrice: number | null;
+  open: boolean;
+  onToggle: () => void;
 }) {
-  const currentYear = new Date().getFullYear();
-  const [open, setOpen] = React.useState(year === currentYear || year === currentYear + 1);
   const yearValueEur = eurPrice !== null ? shares * eurPrice : null;
 
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         className="w-full flex items-center justify-between gap-3 px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
         aria-expanded={open}
       >

@@ -4,9 +4,22 @@ import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import type { BrokerGuide } from './types';
 import { fidelityGuide } from './fidelity-steps';
+import { BrokerLogo } from '../BrokerLogo';
+import type { Broker } from '../../lib/types';
 
 const DEFAULT_GUIDES: BrokerGuide[] = [fidelityGuide];
 const DEFAULT_TITLE = 'Comment exporter depuis votre courtier';
+
+/**
+ * Map a guide brokerId to the canonical Broker type used by BrokerLogo.
+ * Returns null when the guide is not associated with a tradeable broker
+ * (e.g. the StockExport guide), in which case no logo is shown.
+ */
+function brokerOfGuide(brokerId: string): Broker | null {
+  if (brokerId.startsWith('fidelity')) return 'fidelity';
+  if (brokerId.startsWith('morgan')) return 'morgan_stanley';
+  return null;
+}
 
 interface BrokerExportGuideProps {
   open: boolean;
@@ -117,7 +130,10 @@ export function BrokerExportGuide({ open, onClose, guides = DEFAULT_GUIDES, titl
               </div>
             )}
             {guides.length === 1 && (
-              <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-2 text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                {brokerOfGuide(guide.brokerId) && (
+                  <BrokerLogo broker={brokerOfGuide(guide.brokerId)!} className="h-3.5" />
+                )}
                 {guide.brokerName}
               </span>
             )}

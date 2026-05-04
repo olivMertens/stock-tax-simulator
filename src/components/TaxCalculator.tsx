@@ -14,9 +14,15 @@ interface TaxCalculatorProps {
   onTaxModeChange: (mode: TaxMode) => void;
   fiscalYear: number;
   familyStatus?: FamilyStatus;
+  /**
+   * When true, indicates the underlying lot selection has changed since this
+   * result was computed; renders a discreet badge prompting the user to
+   * re-run the simulation.
+   */
+  stale?: boolean;
 }
 
-export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode, onTaxModeChange, fiscalYear, familyStatus = 'single' }: TaxCalculatorProps) {
+export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode, onTaxModeChange, fiscalYear, familyStatus = 'single', stale = false }: TaxCalculatorProps) {
   const cfg = React.useMemo(() => getTaxConfig(fiscalYear), [fiscalYear]);
   const thresholds = React.useMemo(
     () => (result ? analyzeThresholds(result, fiscalYear, familyStatus) : null),
@@ -49,6 +55,15 @@ export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode
 
   return (
     <div className="space-y-6">
+      {stale && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-xs"
+          role="status"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>Sélection modifiée — relancez la simulation pour mettre à jour le résultat.</span>
+        </div>
+      )}
       {/* Live region announces major threshold changes to screen readers. */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         Simulation mise à jour — montant net {formatEUR(r.netAmount)}, impôt total {formatEUR(r.totalTax)}.

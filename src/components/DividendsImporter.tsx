@@ -1,36 +1,44 @@
 import React from 'react';
-import { Upload, RefreshCw, FileCheck, Trash2, AlertTriangle, Coins, HelpCircle } from 'lucide-react';
-import { Button } from './ui/button';
+import { Trash2, AlertTriangle, Coins, HelpCircle } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Alert } from './ui/alert';
+import { FileDropZone } from './ui/FileDropZone';
 import { BrokerExportGuide } from './guides/BrokerExportGuide';
 import { transactionHistoryGuide } from './guides/transaction-history-steps';
+import { DividendsSummary } from './DividendsSummary';
 import { parseTransactionHistoryCsv, type DividendEvent, type CashInterestEvent } from '../lib/transaction-parser';
-import { saveDividends, clearDividends } from '../lib/storage';
-import { formatUSD } from '../lib/utils';
+import { brokerLabel } from '../lib/utils';
+import type { Broker } from '../lib/types';
 
 interface DividendsImporterProps {
+  /** Broker the transactions CSV is being imported from. Defaults to Fidelity. */
+  broker?: Broker;
   dividends: DividendEvent[];
   cashInterest: CashInterestEvent[];
   onDividendsChange: (payload: { dividends: DividendEvent[]; cashInterest: CashInterestEvent[] }) => void;
+  /**
+   * When rendered inside a BrokerSection card, set this to true to drop the
+   * outer Card wrapper and the broker-name preamble (the parent section
+   * already provides that context).
+   */
+  embedded?: boolean;
 }
 
 /**
- * Import panel for the Fidelity Transaction History CSV.
- * Extracts MSFT dividends + US withholding tax; interest from the cash sweep is surfaced separately.
- * Fail-soft: errors are displayed inline, existing data is left untouched.
+ * Import panel for the broker's Transaction History CSV. Currently only the
+ * Fidelity format is parsed; other brokers will plug in via a registry in lot 3.
+ * Extracts MSFT dividends + US withholding tax; interest from the cash sweep is
+ * surfaced separately. Fail-soft: errors are displayed inline, existing data is
+ * left untouched.
  */
-export function DividendsImporter({ dividends, cashInterest, onDividendsChange }: DividendsImporterProps) {
+export function DividendsImporter({ broker = 'fidelity', dividends, cashInterest, onDividendsChange, embedded = false }: DividendsImporterProps) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [warnings, setWarnings] = React.useState<string[]>([]);
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [showGuide, setShowGuide] = React.useState(false);
-  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFile = async (file: File) => {
     setError(null);
     setWarnings([]);
     setFileName(file.name);
@@ -39,156 +47,125 @@ export function DividendsImporter({ dividends, cashInterest, onDividendsChange }
       const content = await file.text();
       const parsed = parseTransactionHistoryCsv(content);
       if (parsed.dividends.length === 0 && parsed.cashInterest.length === 0) {
-        setError("Aucun dividende reconnu dans ce fichier. Vérifiez qu'il s'agit bien d'un historique des transactions Fidelity.");
+        setError(`Aucun dividende reconnu dans ce fichier. Vérifiez qu'il s'agit bien d'un historique des transactions ${brokerLabel(broker)}.`);
         return;
       }
-      const importedAt = new Date().toISOString();
-      saveDividends({ dividends: parsed.dividends, cashInterest: parsed.cashInterest, importedAt });
+      // Persistence is handled by the parent via onDividendsChange so that
+      // the merged multi-broker state stays consistent.
       onDividendsChange({ dividends: parsed.dividends, cashInterest: parsed.cashInterest });
       setWarnings(parsed.warnings);
     } catch (err) {
       setError('Impossible de lire le fichier : ' + (err as Error).message);
     } finally {
       setLoading(false);
-      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
   const handleClear = () => {
-    clearDividends();
     onDividendsChange({ dividends: [], cashInterest: [] });
     setFileName(null);
     setWarnings([]);
     setError(null);
   };
 
-  const totals = React.useMemo(() => {
-    const gross = dividends.reduce((s, d) => s + d.grossUsd, 0);
-    const tax = dividends.reduce((s, d) => s + d.taxWithheldUsd, 0);
-    const net = dividends.reduce((s, d) => s + d.netUsd, 0);
-    const cash = cashInterest.reduce((s, c) => s + c.amountUsd, 0);
-    return { gross, tax, net, cash };
-  }, [dividends, cashInterest]);
+  const helpButton = (
+    <button
+      type="button"
+      onClick={() => setShowGuide(true)}
+      aria-label="Voir le guide d'export"
+      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors whitespace-nowrap shrink-0"
+    >
+      <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+      Voir le guide d&rsquo;export
+    </button>
+  );
+
+  const hasImports = dividends.length + cashInterest.length > 0;
+  const clearButton = hasImports ? (
+    <button
+      type="button"
+      onClick={handleClear}
+      aria-label="Supprimer les dividendes importés"
+      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors whitespace-nowrap shrink-0"
+    >
+      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+      Supprimer
+    </button>
+  ) : null;
+
+  const body = (
+    <>
+      {/* Prerequisite banner: replaces the bare gray paragraph so each broker
+          card opens with a coloured banner of identical structure. */}
+      <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+        <Coins className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+        <span>
+          Historique des transactions {brokerLabel(broker)} (CSV) sur l&rsquo;<strong>année civile complète</strong>.
+          Indispensable pour pré-remplir les cases <strong>2DC / 2AB / 2BH</strong> de la déclaration.
+        </span>
+      </div>
+
+      <FileDropZone
+        accept=".csv,text/csv"
+        onFile={handleFile}
+        loading={loading}
+        compact
+        prompt={`Glissez l'historique des transactions ${brokerLabel(broker)} (CSV) ici ou cliquez pour parcourir`}
+        fileName={fileName}
+      />
+
+      <BrokerExportGuide
+        open={showGuide}
+        onClose={() => setShowGuide(false)}
+        guides={[transactionHistoryGuide]}
+        title="Comment exporter votre historique des transactions"
+      />
+
+      {error && (
+        <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {dividends.length > 0 && !error && (
+        <DividendsSummary
+          dividends={dividends}
+          cashInterest={cashInterest}
+          fileName={fileName}
+        />
+      )}
+
+      {warnings.length > 0 && (
+        <Alert>
+          <div className="space-y-1">
+            <p className="font-medium">Avertissements à la lecture du fichier :</p>
+            <ul className="list-disc ml-5 text-xs">
+              {warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </div>
+        </Alert>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-end gap-2">{clearButton}{helpButton}</div>
+        {body}
+      </div>
+    );
+  }
 
   return (
     <Card>
       <CardContent className="pt-5 pb-4 space-y-4">
-        <div className="flex items-start gap-3">
-          <Coins className="h-5 w-5 text-gray-400 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0 text-sm text-gray-600">
-            <p>
-              Importez votre <strong>historique des transactions Fidelity</strong> (CSV) pour extraire
-              vos dividendes MSFT et la retenue à la source US. Indispensable pour pré-remplir les cases
-              <strong> 2DC / 2AB / 2BH</strong> de la déclaration.
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Sans cet import, les dividendes ne sont pas suivis. Exporter <strong>l'année civile complète</strong>
-              (par exemple 2025 entière pour la déclaration 2026) pour obtenir des totaux corrects.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => inputRef.current?.click()}
-            disabled={loading}
-            className="gap-1.5"
-          >
-            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {loading ? 'Analyse…' : 'Choisir un fichier'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowGuide(true)}
-            className="gap-1.5"
-            aria-label="Afficher le guide d'export de l'historique des transactions"
-          >
-            <HelpCircle className="h-4 w-4" />
-            Comment l'exporter ?
-          </Button>
-          {dividends.length + cashInterest.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClear}
-              className="gap-1.5 text-red-600 hover:text-red-700 ml-auto"
-            >
-              <Trash2 className="h-4 w-4" />
-              Supprimer
-            </Button>
-          )}
-        </div>
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".csv,text/csv"
-          className="hidden"
-          onChange={handleFile}
-        />
-
-        <BrokerExportGuide
-          open={showGuide}
-          onClose={() => setShowGuide(false)}
-          guides={[transactionHistoryGuide]}
-          title="Comment exporter votre historique des transactions"
-        />
-
-        {error && (
-          <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {dividends.length > 0 && !error && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <FileCheck className="h-4 w-4 text-amber-700" />
-              <span className="font-medium text-amber-900">
-                {dividends.length} versement{dividends.length > 1 ? 's' : ''} de dividendes MSFT
-                {fileName ? ` depuis ${fileName}` : ''}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <Totals label="Brut" value={totals.gross} />
-              <Totals label="Retenue US" value={totals.tax} />
-              <Totals label="Net perçu" value={totals.net} highlight />
-            </div>
-            {totals.cash > 0 && (
-              <p className="text-xs text-gray-600 mt-3 pt-3 border-t border-amber-200">
-                Par ailleurs, {formatUSD(totals.cash)} d'intérêts sur le cash Fidelity (MMKT). À
-                déclarer séparément en case 2TR si option barème, non pris en compte ici.
-              </p>
-            )}
-          </div>
-        )}
-
-        {warnings.length > 0 && (
-          <Alert>
-            <div className="space-y-1">
-              <p className="font-medium">Avertissements à la lecture du fichier :</p>
-              <ul className="list-disc ml-5 text-xs">
-                {warnings.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
-            </div>
-          </Alert>
-        )}
+        <div className="flex items-center justify-end gap-2">{clearButton}{helpButton}</div>
+        {body}
       </CardContent>
     </Card>
-  );
-}
-
-function Totals({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div className={`bg-white rounded-md border p-2 text-center ${highlight ? 'border-amber-300' : 'border-amber-100'}`}>
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className={`text-lg font-semibold ${highlight ? 'text-amber-900' : 'text-gray-900'}`}>{formatUSD(value)}</div>
-    </div>
   );
 }

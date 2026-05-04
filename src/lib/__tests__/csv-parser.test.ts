@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCsvFile, parseSalesCsvFile } from '../csv-parser';
+import { parseCsvFile, parseSalesCsvFile } from '../brokers/fidelity/positions-parser';
 
 const HEADER = "Date d'acquisition,Quantité,\"Coût total\",\"Coût/action\",\"Valeur actuelle\",\"+/- value\",\"Dispo vente\",\"Dispo transfert\",\"Date attribution\",Origine,\"Période détention\"";
 

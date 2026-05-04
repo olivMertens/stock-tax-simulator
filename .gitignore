@@ -31,3 +31,11 @@ local.settings.json
 tmp/
 talking-points.html
 
+# Local-only Morgan Stanley sample reports (contain real names) and ad-hoc
+# inspection scripts. Kept on disk for development but not shared.
+demo/morgan-stanley/
+scripts/inspect-ms-xlsx.cjs
+scripts/ms-inspect.out
+scripts/trim-logos.ps1
+.git-msg-*.txt
+

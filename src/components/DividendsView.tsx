@@ -48,6 +48,28 @@ export function DividendsView({ dividends, cashInterest }: DividendsViewProps) {
 
   const groups = React.useMemo(() => groupDividendsByYear(enriched), [enriched]);
 
+  // All groups collapsed by default; auto-open the only year if there is just one.
+  const [openYears, setOpenYears] = React.useState<Set<number>>(() => new Set());
+  const initialisedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (initialisedRef.current) return;
+    if (groups.length === 0) return;
+    initialisedRef.current = true;
+    if (groups.length === 1) setOpenYears(new Set([groups[0].year]));
+  }, [groups]);
+  const toggleYear = React.useCallback((year: number) => {
+    setOpenYears((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  }, []);
+  const allOpen = groups.length > 0 && groups.every((g) => openYears.has(g.year));
+  const toggleAll = () => {
+    setOpenYears(allOpen ? new Set() : new Set(groups.map((g) => g.year)));
+  };
+
   if (dividends.length === 0) return null;
 
   const cashTotalUsd = cashInterest.reduce((s, c) => s + c.amountUsd, 0);
@@ -89,8 +111,24 @@ export function DividendsView({ dividends, cashInterest }: DividendsViewProps) {
           </p>
         )}
 
+        {groups.length > 1 && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="text-xs text-gray-600 hover:text-gray-900 underline-offset-2 hover:underline"
+            >
+              {allOpen ? 'Tout replier' : 'Tout déplier'}
+            </button>
+          </div>
+        )}
         {groups.map((g) => (
-          <YearGroup key={g.year} summary={g} />
+          <YearGroup
+            key={g.year}
+            summary={g}
+            open={openYears.has(g.year)}
+            onToggle={() => toggleYear(g.year)}
+          />
         ))}
 
         {cashTotalUsd > 0 && (
@@ -104,15 +142,12 @@ export function DividendsView({ dividends, cashInterest }: DividendsViewProps) {
   );
 }
 
-function YearGroup({ summary }: { summary: DividendYearSummary }) {
-  const currentYear = new Date().getFullYear();
-  const [open, setOpen] = React.useState(summary.year === currentYear || summary.year === currentYear - 1);
-
+function YearGroup({ summary, open, onToggle }: { summary: DividendYearSummary; open: boolean; onToggle: () => void }) {
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         className="w-full flex items-center justify-between gap-3 px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
         aria-expanded={open}
       >

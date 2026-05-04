@@ -4,6 +4,7 @@ import type { GrantInfo, StockLot } from '../types';
 
 function makeLot(partial: Partial<StockLot> & Pick<StockLot, 'id' | 'acquisitionDate' | 'origin'>): StockLot {
   return {
+    broker: 'fidelity',
     quantity: 2,
     costBasisPerShare: 0,
     totalCostBasis: 0,

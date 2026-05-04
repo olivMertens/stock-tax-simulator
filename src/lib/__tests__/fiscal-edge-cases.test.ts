@@ -9,6 +9,7 @@ const cfg2025 = getTaxConfig(2025);
 function makeLot(overrides: Partial<StockLot> = {}): StockLot {
   return {
     id: 'lot-1',
+    broker: 'fidelity',
     acquisitionDate: new Date(2023, 0, 15),
     quantity: 100,
     costBasisPerShare: 250,

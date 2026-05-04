@@ -14,6 +14,7 @@ import type { StockLot, SaleLotEntry, SaleSimulation } from '../types';
 function makeLot(overrides: Partial<StockLot> = {}): StockLot {
   return {
     id: 'lot-1',
+    broker: 'fidelity',
     acquisitionDate: new Date(2023, 0, 15),
     quantity: 100,
     costBasisPerShare: 250,

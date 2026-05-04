@@ -5,8 +5,18 @@ export type FamilyStatus = 'single' | 'couple';
 export type HoldingPeriod = 'Short' | 'Long';
 export type ImportCurrency = 'EUR' | 'USD';
 
+/**
+ * Broker identifier. The app supports multi-broker users (typically Microsoft
+ * employees who hold shares at Fidelity, Morgan Stanley, or both). The broker
+ * is preserved on every lot/sold lot/dividend so users can filter and audit
+ * their portfolio per source. The broker has NO fiscal impact — the tax engine
+ * aggregates across all sources.
+ */
+export type Broker = 'fidelity' | 'morgan_stanley';
+
 export interface StockLot {
   id: string;
+  broker: Broker;
   acquisitionDate: Date;
   quantity: number;
   costBasisPerShare: number;
@@ -70,6 +80,7 @@ export interface GrantInfo {
 
 export interface SoldLot {
   id: string;
+  broker: Broker;
   acquisitionDate: Date;
   saleDate: Date;
   quantity: number;

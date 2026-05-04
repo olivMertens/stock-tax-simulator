@@ -1,4 +1,4 @@
-import type { AppSettings, FamilyStatus, GrantInfo, PlanType, StockOrigin } from './types';
+import type { AppSettings, Broker, FamilyStatus, GrantInfo, PlanType, StockOrigin } from './types';
 import type { DividendEvent, CashInterestEvent } from './transaction-parser';
 
 /**
@@ -229,12 +229,14 @@ export function saveDividends(payload: DividendsPayload): boolean {
     data: {
       dividends: payload.dividends.map((d) => ({
         date: d.date.toISOString(),
+        broker: d.broker,
         grossUsd: d.grossUsd,
         taxWithheldUsd: d.taxWithheldUsd,
         netUsd: d.netUsd,
       })),
       cashInterest: payload.cashInterest.map((c) => ({
         date: c.date.toISOString(),
+        broker: c.broker,
         amountUsd: c.amountUsd,
       })),
       importedAt: payload.importedAt,
@@ -261,7 +263,8 @@ export function loadDividends(): DividendsPayload | null {
             const taxWithheldUsd = isNonNegativeNumber(o.taxWithheldUsd) ? (o.taxWithheldUsd as number) : 0;
             const netUsd = isNonNegativeNumber(o.netUsd) ? (o.netUsd as number) : null;
             if (grossUsd === null || netUsd === null) return null;
-            return { date, grossUsd, taxWithheldUsd, netUsd };
+            const broker: Broker = o.broker === 'morgan_stanley' ? 'morgan_stanley' : 'fidelity';
+            return { date, broker, grossUsd, taxWithheldUsd, netUsd };
           })
           .filter((v: unknown): v is DividendEvent => v !== null)
       : [];
@@ -274,7 +277,8 @@ export function loadDividends(): DividendsPayload | null {
             const date = typeof o.date === 'string' ? new Date(o.date) : null;
             const amountUsd = isNonNegativeNumber(o.amountUsd) ? (o.amountUsd as number) : null;
             if (!date || isNaN(date.getTime()) || amountUsd === null) return null;
-            return { date, amountUsd };
+            const broker: Broker = o.broker === 'morgan_stanley' ? 'morgan_stanley' : 'fidelity';
+            return { date, broker, amountUsd };
           })
           .filter((v: unknown): v is CashInterestEvent => v !== null)
       : [];

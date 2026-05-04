@@ -1,9 +1,8 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
 import { Select } from './ui/select';
 import { Button } from './ui/button';
-import { Settings as SettingsIcon, Save, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Save, AlertTriangle, FileText, ShieldCheck, Users } from 'lucide-react';
 import type { AppSettings, FamilyStatus, StockLot, SoldLot, SavedSimulation } from '../lib/types';
 import { Tooltip } from './ui/tooltip';
 import { saveVersionedSettings } from '../lib/storage';
@@ -30,6 +29,59 @@ function calculateTaxShares(familyStatus: FamilyStatus, numberOfChildren: number
     shares += (numberOfChildren - 2) * 1; // 1 per additional child
   }
   return shares;
+}
+
+interface SectionHeaderProps {
+  step: number;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+/** Top-level section heading, mirrors DataPanel's. */
+function SectionHeader({ step, icon, title, description }: SectionHeaderProps) {
+  return (
+    <div className="flex items-start gap-3 pt-4 first:pt-0">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 leading-tight">
+          <span className="text-gray-400 mr-1.5">{step}.</span>
+          {title}
+        </h3>
+        <p className="text-sm text-gray-600">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+interface AccentCardProps {
+  title: string;
+  icon: React.ReactNode;
+  stripe: string;
+  header: string;
+  iconColor: string;
+  children: React.ReactNode;
+  /** Optional footer rendered below the body, inside the card. */
+  footer?: React.ReactNode;
+}
+
+/**
+ * Card with the same visual grammar as DataPanel: 4px coloured left stripe,
+ * tinted header bar with a title + icon on the right, white body.
+ */
+function AccentCard({ title, icon, stripe, header, iconColor, children, footer }: AccentCardProps) {
+  return (
+    <div className={`rounded-xl border border-gray-200 border-l-4 ${stripe} bg-white shadow-sm overflow-hidden`}>
+      <div className={`flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 ${header}`}>
+        <h4 className="text-base font-semibold text-gray-900">{title}</h4>
+        <div className={`shrink-0 ${iconColor}`}>{icon}</div>
+      </div>
+      <div className="p-5">{children}</div>
+      {footer}
+    </div>
+  );
 }
 
 export function Settings({ settings, onSettingsChange, defaults, lots = [], soldLots = [], savedSimulations = [], onBackupImport }: SettingsProps) {
@@ -62,20 +114,72 @@ export function Settings({ settings, onSettingsChange, defaults, lots = [], sold
   const isDirty = JSON.stringify(local) !== JSON.stringify(settings);
 
   return (
-    <div className="space-y-6 max-w-2xl pb-6">
-      <TaxNoticeImporter settings={settings} onSettingsChange={onSettingsChange} />
+    <div className="space-y-8 max-w-5xl mx-auto pb-6">
+      <header className="flex items-start gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <SettingsIcon className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold">Paramètres</h2>
+          <p className="text-sm text-gray-600">
+            Configurez votre situation fiscale, importez votre avis d'imposition pour pré-remplir, et gérez vos sauvegardes locales.
+          </p>
+        </div>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <SettingsIcon className="h-5 w-5" />
-            Paramètres fiscaux
-          </CardTitle>
-          <CardDescription>
-            Configurez vos paramètres pour une estimation plus précise.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      {/* 1. Avis d'imposition (pré-remplissage) */}
+      <section className="space-y-4">
+        <SectionHeader
+          step={1}
+          icon={<FileText className="h-5 w-5" />}
+          title="Avis d'imposition"
+          description="Importez votre avis d'imposition (PDF d'impots.gouv.fr) pour pré-remplir automatiquement la situation familiale, les parts et le revenu imposable."
+        />
+        <AccentCard
+          title="Pré-remplissage automatique"
+          icon={<FileText className="h-5 w-5" />}
+          stripe="border-l-amber-500"
+          header="bg-amber-50/60"
+          iconColor="text-amber-600"
+        >
+          <TaxNoticeImporter settings={settings} onSettingsChange={onSettingsChange} embedded />
+        </AccentCard>
+      </section>
+
+      {/* 2. Paramètres fiscaux */}
+      <section className="space-y-4">
+        <SectionHeader
+          step={2}
+          icon={<Users className="h-5 w-5" />}
+          title="Foyer fiscal & revenus"
+          description="Situation familiale, parts fiscales, revenu imposable hors actions et moins-values reportables. Ces valeurs alimentent toutes les simulations."
+        />
+        <AccentCard
+          title="Configuration manuelle"
+          icon={<SettingsIcon className="h-5 w-5" />}
+          stripe="border-l-sky-500"
+          header="bg-sky-50/60"
+          iconColor="text-sky-600"
+          footer={
+            (isDirty || saved) && (
+              <div className="border-t bg-amber-50/50 px-5 py-3 flex items-center gap-4">
+                {isDirty && (
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    Modifications non enregistrées
+                  </div>
+                )}
+                <div className="ml-auto">
+                  <Button onClick={handleSave} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saved ? 'Enregistré !' : 'Enregistrer'}
+                  </Button>
+                </div>
+              </div>
+            )
+          }
+        >
+          <div className="space-y-6">
           {/* Section: Foyer fiscal */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Foyer fiscal</h3>
@@ -172,33 +276,34 @@ export function Settings({ settings, onSettingsChange, defaults, lots = [], sold
               </div>
             </div>
           </div>
-        </CardContent>
-
-        {/* Save bar — inside the card, visible only when dirty or just saved */}
-        {(isDirty || saved) && (
-          <div className="border-t bg-amber-50/50 px-6 py-3 flex items-center gap-4 rounded-b-lg">
-            {isDirty && (
-              <div className="flex items-center gap-2 text-sm text-amber-700">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                Modifications non enregistrées
-              </div>
-            )}
-            <div className="ml-auto">
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="h-4 w-4" />
-                {saved ? 'Enregistré !' : 'Enregistrer'}
-              </Button>
-            </div>
           </div>
-        )}
-      </Card>
+        </AccentCard>
+      </section>
 
+      {/* 3. Sauvegarde locale */}
       {onBackupImport && defaults && (
-        <BackupPanel
-          current={{ settings, lots, soldLots, savedSimulations }}
-          defaults={defaults}
-          onImport={onBackupImport}
-        />
+        <section className="space-y-4">
+          <SectionHeader
+            step={3}
+            icon={<ShieldCheck className="h-5 w-5" />}
+            title="Sauvegarde & restauration"
+            description="Vos données sont stockées localement dans ce navigateur. Exportez une sauvegarde pour les transférer sur un autre appareil ou les conserver en sécurité."
+          />
+          <AccentCard
+            title="Export & import JSON"
+            icon={<ShieldCheck className="h-5 w-5" />}
+            stripe="border-l-slate-500"
+            header="bg-slate-50/60"
+            iconColor="text-slate-600"
+          >
+            <BackupPanel
+              current={{ settings, lots, soldLots, savedSimulations }}
+              defaults={defaults}
+              onImport={onBackupImport}
+              embedded
+            />
+          </AccentCard>
+        </section>
       )}
     </div>
   );

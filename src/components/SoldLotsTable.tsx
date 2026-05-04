@@ -1,10 +1,12 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Alert } from './ui/alert';
 import { Badge } from './ui/badge';
 import { Select } from './ui/select';
 import { ShoppingCart, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react';
-import type { SoldLot, StockOrigin, PlanType } from '../lib/types';
-import { formatEUR, formatUSD, formatDate } from '../lib/utils';
+import type { Broker, SoldLot, StockOrigin, PlanType } from '../lib/types';
+import { brokerLabel, formatEUR, formatUSD, formatDate } from '../lib/utils';
+import { BrokerLogo } from './BrokerLogo';
 
 interface SoldLotsTableProps {
   soldLots: SoldLot[];
@@ -15,14 +17,21 @@ interface SoldLotsTableProps {
 }
 
 export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, saleYear, onSaleYearChange }: SoldLotsTableProps) {
+  const [filterBroker, setFilterBroker] = React.useState<Broker | 'all'>('all');
+
   // Compute available years
   const saleYears = [...new Set(soldLots.map((l) => l.saleDate.getFullYear()))].sort((a, b) => b - a);
   const hasMultipleYears = saleYears.length > 1;
 
-  // Filter lots by selected year
-  const filteredLots = saleYear != null
-    ? soldLots.filter((l) => l.saleDate.getFullYear() === saleYear)
-    : soldLots;
+  const presentBrokers = Array.from(new Set(soldLots.map((l) => l.broker))) as Broker[];
+  const hasMultipleBrokers = presentBrokers.length > 1;
+
+  // Filter lots by selected year and broker
+  const filteredLots = soldLots.filter((l) => {
+    if (saleYear != null && l.saleDate.getFullYear() !== saleYear) return false;
+    if (filterBroker !== 'all' && l.broker !== filterBroker) return false;
+    return true;
+  });
   const hiddenCount = soldLots.length - filteredLots.length;
 
   const totalProceeds = filteredLots.reduce((sum, l) => sum + l.proceeds, 0);
@@ -108,6 +117,22 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
           </Alert>
         </div>
 
+        {hasMultipleBrokers && (
+          <div className="mb-4">
+            <Select
+              value={filterBroker}
+              onChange={(e) => setFilterBroker(e.target.value as Broker | 'all')}
+              aria-label="Filtrer par courtier"
+              className="w-48"
+            >
+              <option value="all">Tous courtiers</option>
+              {presentBrokers.map((b) => (
+                <option key={b} value={b}>{brokerLabel(b)}</option>
+              ))}
+            </Select>
+          </div>
+        )}
+
         {/* Table — desktop */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
@@ -116,6 +141,7 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
               <tr className="border-b text-left text-gray-500">
                 <th scope="col" className="pb-2 pr-3 font-medium">Acquisition</th>
                 <th scope="col" className="pb-2 pr-3 font-medium">Vente</th>
+                {hasMultipleBrokers && <th scope="col" className="pb-2 pr-3 font-medium">Courtier</th>}
                 <th scope="col" className="pb-2 pr-3 font-medium text-right">Qté</th>
                 <th scope="col" className="pb-2 pr-3 font-medium text-right">Produits</th>
                 <th scope="col" className="pb-2 pr-3 font-medium text-right">Coût</th>
@@ -129,6 +155,11 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
                 <tr key={lot.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-2 pr-3">{formatDate(lot.acquisitionDate)}</td>
                   <td className="py-2 pr-3">{formatDate(lot.saleDate)}</td>
+                  {hasMultipleBrokers && (
+                    <td className="py-2 pr-3">
+                      <BrokerLogo broker={lot.broker} className="h-5" />
+                    </td>
+                  )}
                   <td className="py-2 pr-3 text-right tabular-nums">
                     {lot.quantity.toLocaleString('fr-FR', { maximumFractionDigits: 4 })}
                   </td>
@@ -189,6 +220,11 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
           )}
           {filteredLots.map((lot) => (
             <div key={lot.id} className="border rounded-lg p-3 space-y-2">
+              {hasMultipleBrokers && (
+                <div>
+                  <BrokerLogo broker={lot.broker} className="h-5" />
+                </div>
+              )}
               <div className="flex items-start justify-between gap-2 text-xs">
                 <div>
                   <div className="text-gray-500">Acquis le</div>
@@ -254,7 +290,7 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
 
         {hiddenCount > 0 && (
           <p className="mt-3 text-xs text-gray-500">
-            {hiddenCount} cession{hiddenCount > 1 ? 's' : ''} d'autres années masquée{hiddenCount > 1 ? 's' : ''}
+            {hiddenCount} cession{hiddenCount > 1 ? 's' : ''} masquée{hiddenCount > 1 ? 's' : ''} par les filtres
           </p>
         )}
 
