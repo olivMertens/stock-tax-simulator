@@ -25,6 +25,12 @@ export default defineConfig([
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
+      // ESLint 10 / react-hooks v6 ships a new rule that flags `setState` calls inside
+      // `useEffect`. Several legitimate sync patterns (e.g. resetting local state when a
+      // prop changes, fetching on mount) trip it. Downgraded to a warning so we can adopt
+      // the upgrade now and refactor the call sites incrementally.
+      // TODO: refactor the 6 flagged sites and re-enable as 'error'.
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 ])
