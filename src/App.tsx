@@ -786,6 +786,15 @@ function App() {
                   ref={simResultRef}
                   className={`scroll-mt-4 rounded-lg transition-shadow duration-500 ${simResultFlash ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                 >
+                  {simStale && simResult && (
+                    <div
+                      className="mb-4 flex items-center gap-2 px-3 py-2 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-xs"
+                      role="status"
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Sélection modifiée — relancez la simulation pour mettre à jour le résultat.</span>
+                    </div>
+                  )}
                   {simEntries.length > 0 && simResult && (
                     <div className="mb-6">
                       <PfuVsBaremeComparator
@@ -803,7 +812,6 @@ function App() {
                     onTaxModeChange={handleSimTaxModeChange}
                     fiscalYear={simFiscalYear}
                     familyStatus={settings.familyStatus}
-                    stale={simStale}
                   />
                 </div>
               </>
