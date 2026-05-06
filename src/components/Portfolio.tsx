@@ -15,6 +15,8 @@ import { DividendsView } from './DividendsView';
 import { BrokerLogo } from './BrokerLogo';
 import { Dialog, DialogFooter } from './ui/dialog';
 import { Button } from './ui/button';
+import { BulkQualifyPanel } from './BulkQualifyPanel';
+import { countEligible, type BulkQualifyChoice } from '../lib/bulk-qualify';
 
 interface PortfolioProps {
   lots: StockLot[];
@@ -22,6 +24,10 @@ interface PortfolioProps {
   grants?: GrantInfo[];
   dividends?: DividendEvent[];
   cashInterest?: CashInterestEvent[];
+  /** Optional: opens a bulk-qualify panel when there are non-reconciled lots. */
+  onBulkQualify?: (choice: BulkQualifyChoice) => void;
+  /** Whether the user has imported a StockExport file — drives the wording of the banner. */
+  hasGrants?: boolean;
 }
 
 // Threshold under which the lot table auto-opens — small portfolios fit on one
@@ -48,7 +54,7 @@ const BROKER_COLORS: Record<string, string> = {
 
 type GroupBy = 'origin' | 'holding' | 'broker';
 
-export function Portfolio({ lots, onLotsChange, grants = [], dividends = [], cashInterest = [] }: PortfolioProps) {
+export function Portfolio({ lots, onLotsChange, grants = [], dividends = [], cashInterest = [], onBulkQualify, hasGrants = false }: PortfolioProps) {
   const [filterOrigin, setFilterOrigin] = React.useState<StockOrigin | 'all'>('all');
   const [filterHolding, setFilterHolding] = React.useState<'all' | 'Short' | 'Long'>('all');
   const [filterBroker, setFilterBroker] = React.useState<Broker | 'all'>('all');
@@ -200,6 +206,8 @@ export function Portfolio({ lots, onLotsChange, grants = [], dividends = [], cas
   const hasDOLots = lots.some((l) => l.origin === 'DO');
   const hasUsdImport = lots.some((l) => l.importCurrency === 'USD');
   const hasEsppLots = lots.some((l) => l.origin === 'SP');
+  const totalEligibleForBulk = countEligible(lots);
+  const [bulkOpen, setBulkOpen] = React.useState(false);
 
   const isFiltered = filterOrigin !== 'all' || filterHolding !== 'all' || filterBroker !== 'all';
   const resetFilters = () => {
@@ -344,9 +352,36 @@ export function Portfolio({ lots, onLotsChange, grants = [], dividends = [], cas
             {/* DO lots info */}
             {hasDOLots && (
               <Alert>
-                Les lots <strong>DO</strong> n'indiquent pas le régime fiscal. Les lots <strong>FM</strong> et <strong>FQ</strong> sont automatiquement qualifiés.
-                Vérifiez le régime de vos lots DO auprès de votre RH. Vous pouvez modifier le régime lot par lot ci-dessous.
+                <div className="flex flex-col gap-2">
+                  <div>
+                    Les lots <strong>DO</strong> n'indiquent pas le régime fiscal. Les lots <strong>FM</strong> et <strong>FQ</strong> sont automatiquement qualifiés.
+                    {hasGrants
+                      ? ' Vérifiez le régime de vos lots DO restants ci-dessous.'
+                      : ' Importez votre StockExport pour qualifier automatiquement les lots, ou utilisez la qualification en lot.'}
+                  </div>
+                  {onBulkQualify && totalEligibleForBulk > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setBulkOpen((v) => !v)}
+                      className="self-start text-xs font-medium text-primary hover:underline"
+                    >
+                      {bulkOpen ? 'Masquer la qualification en lot' : `Qualifier en lot ${totalEligibleForBulk} lots non reconciliés`}
+                    </button>
+                  )}
+                </div>
               </Alert>
+            )}
+            {onBulkQualify && bulkOpen && totalEligibleForBulk > 0 && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <BulkQualifyPanel
+                  eligibleCount={totalEligibleForBulk}
+                  onApply={(choice) => {
+                    onBulkQualify(choice);
+                    setBulkOpen(false);
+                  }}
+                  compact
+                />
+              </div>
             )}
 
             {/* Filters — sticky so they remain reachable while scrolling lots */}

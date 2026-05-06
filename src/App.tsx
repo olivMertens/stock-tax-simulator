@@ -10,10 +10,12 @@ import { Dialog, DialogHeader, DialogFooter } from './components/ui/dialog';
 import { runSimulation } from './lib/tax-engine';
 import { loadVersionedSettings, safeSetItem, saveVersionedSettings, loadGrants, loadDividends, saveDividends, clearDividends } from './lib/storage';
 import { reconcileLots, reconcileSoldLots } from './lib/stockexport-reconciliation';
+import { applyBulkChoiceToLots, applyBulkChoiceToSoldLots, countEligible, type BulkQualifyChoice } from './lib/bulk-qualify';
 import type { ImportResult } from './lib/backup';
 import type { StockLot, SoldLot, SaleLotEntry, AppSettings, TaxSimulationResult, TaxMode, SavedSimulation, GrantInfo, Broker } from './lib/types';
 import type { DividendEvent, CashInterestEvent } from './lib/transaction-parser';
 import { DividendsDeclaration } from './components/DividendsDeclaration';
+import { BulkQualifyPanel } from './components/BulkQualifyPanel';
 import { generateId, mergeByBroker } from './lib/utils';
 
 // Lazy-load heavy components (pdfjs-dist via Settings, recharts via Portfolio)
@@ -456,6 +458,59 @@ function App() {
     setDeclResult(runSimulation(simulation));
   }, [settings, declTaxMode, declFiscalYear, saleYear]);
 
+  /**
+   * Bulk-requalify all eligible (= non-reconciled, non-ESPP) sold lots according
+   * to a BulkQualifyChoice. Used by the post-import dialog and by the
+   * SoldLotsTable banner when the user has not loaded a StockExport file.
+   * Re-runs the declaration computation so the result card reflects the new
+   * classification immediately.
+   */
+  const handleBulkQualifySoldLots = React.useCallback((choice: BulkQualifyChoice) => {
+    setSoldLots((prev) => {
+      const next = applyBulkChoiceToSoldLots(prev, choice);
+      const yearLots = saleYear != null
+        ? next.filter((sl) => sl.saleDate.getFullYear() === saleYear)
+        : next;
+      const entries = soldLotsToSaleEntries(yearLots);
+      setDeclEntries(entries);
+      const simulation = {
+        lots: entries,
+        taxMode: declTaxMode,
+        otherTaxableIncome: settings.otherTaxableIncome,
+        taxShares: settings.taxShares,
+        familyStatus: settings.familyStatus,
+        priorLosses: settings.priorLosses,
+        fiscalYear: declFiscalYear,
+      };
+      setDeclResult(runSimulation(simulation));
+      return next;
+    });
+  }, [saleYear, declTaxMode, declFiscalYear, settings]);
+
+  /**
+   * Bulk-requalify open positions. Persists planType overrides so that
+   * re-importing the same broker file later honours the user's choice.
+   * (Origin overrides are not persisted because the per-row UI does not
+   * expose origin editing for open lots — bulk-set origins remain
+   * authoritative until the next import.)
+   */
+  const handleBulkQualifyLots = React.useCallback((choice: BulkQualifyChoice) => {
+    setLots((prev) => {
+      const next = applyBulkChoiceToLots(prev, choice);
+      try {
+        const overrides = JSON.parse(localStorage.getItem('planTypeOverrides') || '{}');
+        for (const lot of next) {
+          if (lot.reconciled || lot.origin === 'SP') continue;
+          overrides[lot.id] = lot.planType;
+        }
+        safeSetItem('planTypeOverrides', JSON.stringify(overrides));
+      } catch {
+        // non-fatal — overrides are an optimisation, not a correctness requirement
+      }
+      return next;
+    });
+  }, []);
+
   const handleSaleYearChange = React.useCallback((year: number) => {
     setSaleYear(year);
     const yearLots = soldLots.filter((sl) => sl.saleDate.getFullYear() === year);
@@ -689,7 +744,7 @@ function App() {
             )}
             {lots.length > 0 && (
               <React.Suspense fallback={<LazyFallback />}>
-                <Portfolio lots={lots} onLotsChange={setLots} grants={grants} dividends={dividends} cashInterest={cashInterest} />
+                <Portfolio lots={lots} onLotsChange={setLots} onBulkQualify={handleBulkQualifyLots} hasGrants={grants.length > 0} grants={grants} dividends={dividends} cashInterest={cashInterest} />
               </React.Suspense>
             )}
           </div>
@@ -757,6 +812,8 @@ function App() {
                   <SoldLotsTable
                     soldLots={soldLots}
                     onSoldLotsChange={handleSoldLotsChange}
+                    onBulkQualify={handleBulkQualifySoldLots}
+                    hasGrants={grants.length > 0}
                     defaultPlanType={settings.defaultPlanType}
                     saleYear={saleYear}
                     onSaleYearChange={handleSaleYearChange}
@@ -822,7 +879,11 @@ function App() {
       {showRules && <TaxRulesPanel onClose={() => setShowRules(false)} />}
 
       {/* Sales import requalification dialog */}
-      <Dialog open={showSalesImportDialog} onClose={() => setShowSalesImportDialog(false)}>
+      <Dialog
+        open={showSalesImportDialog}
+        onClose={() => setShowSalesImportDialog(false)}
+        className="max-w-xl"
+      >
         <DialogHeader>
           <p className="font-semibold text-gray-900 mb-2">Vérification nécessaire</p>
           <p>
@@ -833,9 +894,27 @@ function App() {
             ) : (
               <> Importez votre fichier StockExport dans <strong>Mes données &gt; Attributions</strong> pour qualifier automatiquement les lots dont la date correspond à une attribution. </>
             )}
-            Vérifiez et corrigez le <strong>type</strong> (ESPP, Stock Award, AGA…) et le <strong>régime fiscal</strong> des lots non reconciliés dans l'onglet <strong>Ma déclaration</strong>.
           </p>
         </DialogHeader>
+        {countEligible(soldLots) > 0 && (
+          <div className="border-t border-gray-100 pt-4 mb-2 space-y-3">
+            <p className="text-sm font-medium text-gray-900">
+              Qualifier en lot les ventes non reconciliées ({countEligible(soldLots)})
+            </p>
+            <BulkQualifyPanel
+              eligibleCount={countEligible(soldLots)}
+              onApply={(choice) => {
+                handleBulkQualifySoldLots(choice);
+                setShowSalesImportDialog(false);
+                setActiveTab('declaration');
+              }}
+              compact
+            />
+            <p className="text-xs text-gray-500">
+              Vous pourrez toujours ajuster manuellement chaque ligne ensuite dans l'onglet Ma déclaration.
+            </p>
+          </div>
+        )}
         <DialogFooter>
           <button
             onClick={() => {
@@ -844,7 +923,7 @@ function App() {
             }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors"
           >
-            Aller à ma déclaration
+            {countEligible(soldLots) > 0 ? 'Qualifier manuellement' : 'Aller à ma déclaration'}
           </button>
         </DialogFooter>
       </Dialog>

@@ -7,6 +7,8 @@ import { ShoppingCart, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle2 } fr
 import type { Broker, SoldLot, StockOrigin, PlanType } from '../lib/types';
 import { brokerLabel, formatEUR, formatUSD, formatDate } from '../lib/utils';
 import { BrokerLogo } from './BrokerLogo';
+import { BulkQualifyPanel } from './BulkQualifyPanel';
+import { countEligible, type BulkQualifyChoice } from '../lib/bulk-qualify';
 
 interface SoldLotsTableProps {
   soldLots: SoldLot[];
@@ -14,9 +16,21 @@ interface SoldLotsTableProps {
   defaultPlanType: string;
   saleYear: number | null;
   onSaleYearChange: (year: number) => void;
+  /** Optional: opens a bulk-qualify panel when there are non-reconciled lots. */
+  onBulkQualify?: (choice: BulkQualifyChoice) => void;
+  /** Whether the user has imported a StockExport file — drives the wording of the banner. */
+  hasGrants?: boolean;
 }
 
-export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, saleYear, onSaleYearChange }: SoldLotsTableProps) {
+export function SoldLotsTable({
+  soldLots,
+  onSoldLotsChange,
+  defaultPlanType,
+  saleYear,
+  onSaleYearChange,
+  onBulkQualify,
+  hasGrants = false,
+}: SoldLotsTableProps) {
   const [filterBroker, setFilterBroker] = React.useState<Broker | 'all'>('all');
 
   // Compute available years
@@ -59,6 +73,15 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
       soldLots.map((l) => (l.id === lotId ? { ...l, planType } : l))
     );
   };
+
+  // Bulk panel toggled from the alert banner. We keep it collapsed by
+  // default so users with already-classified portfolios don't see a
+  // mass-action UI they don't need. The bulk action operates on ALL
+  // non-reconciled lots regardless of year/broker filters — a deliberate
+  // choice to keep the result predictable: filters drive what the user
+  // *sees*, not what gets requalified.
+  const [bulkOpen, setBulkOpen] = React.useState(false);
+  const totalEligible = countEligible(soldLots);
 
   return (
     <Card>
@@ -114,14 +137,44 @@ export function SoldLotsTable({ soldLots, onSoldLotsChange, defaultPlanType, sal
         <div className="mb-4">
           {filteredLots.some((l) => !l.reconciled) ? (
             <Alert>
-              Les exports de ventes ne fournissent pas toujours l'origine et le régime fiscal exacts des actions.
-              Les lots <strong>reconciliés</strong> avec votre StockExport sont marqués d'un badge ; pour les autres,
-              vérifiez et corrigez le <strong>type</strong> (ESPP, Stock Award, AGA…) et le <strong>régime fiscal</strong> ci-dessous.
+              <div className="flex flex-col gap-2">
+                <div>
+                  Les exports de ventes ne fournissent pas toujours l'origine et le régime fiscal exacts des actions.
+                  {hasGrants ? (
+                    <> Les lots <strong>reconciliés</strong> avec votre StockExport sont marqués d'un badge ; pour les autres,
+                    vérifiez et corrigez le <strong>type</strong> et le <strong>régime fiscal</strong> ci-dessous. </>
+                  ) : (
+                    <> Importez votre fichier <strong>StockExport</strong> dans <em>Mes données &gt; Attributions</em> pour
+                    qualifier automatiquement les lots — ou utilisez la qualification en lot ci-dessous. </>
+                  )}
+                </div>
+                {onBulkQualify && totalEligible > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setBulkOpen((v) => !v)}
+                    className="self-start text-xs font-medium text-primary hover:underline"
+                  >
+                    {bulkOpen ? 'Masquer la qualification en lot' : `Qualifier en lot ${totalEligible} lots non reconciliés`}
+                  </button>
+                )}
+              </div>
             </Alert>
           ) : (
             <Alert>
               Tous les lots affichés ont été <strong>reconciliés automatiquement</strong> avec votre StockExport.
             </Alert>
+          )}
+          {onBulkQualify && bulkOpen && totalEligible > 0 && (
+            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <BulkQualifyPanel
+                eligibleCount={totalEligible}
+                onApply={(choice) => {
+                  onBulkQualify(choice);
+                  setBulkOpen(false);
+                }}
+                compact
+              />
+            </div>
           )}
         </div>
 
