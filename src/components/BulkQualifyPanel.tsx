@@ -28,13 +28,22 @@ export interface BulkQualifyPanelProps {
 type Mode = 'uniform' | 'byDate';
 
 // Default pivot used when the user picks the "by date" mode without
-// further input. The Macron law (loi pour la croissance, l'activité et
-// l'égalité des chances économiques) was promulgated on 6 August 2015.
-// AGAs awarded on/after 8 August 2015 fall under the Macron regime;
-// earlier ones are pré-Macron. Vest dates lag award dates by ~3-4 years
-// for typical RSU schedules, so 2019-01-01 is a reasonable default
-// pivot on the *vest* (acquisition) date axis. The user can adjust.
-const DEFAULT_PIVOT_ISO = '2019-01-01';
+// further input. The Macron law was promulgated on 6 August 2015, but
+// Microsoft only switched its qualified plan to the Macron regime for
+// grants issued from 30 November 2016 onward (KPMG 2025 deck, p. 23).
+//
+// MSFT calendar specifics:
+//   - Last pré-Macron qualified grant: 29 Nov 2016. With the pre-July-2017
+//     qualified schedule (80% at Y+2, 20% at Y+3), its last vests fall in
+//     November 2019.
+//   - First Macron qualified grant: 30 Nov 2016. First vest at 80% in
+//     November 2018.
+//
+// There is therefore an unavoidable overlap zone (late 2018 – late 2019)
+// where vests of both regimes coexist. We default the pivot to the end
+// of that overlap (2019-12-01) so users with a single regime get a sane
+// default, but the explanatory text below makes the ambiguity explicit.
+const DEFAULT_PIVOT_ISO = '2019-12-01';
 
 function pairFor(planType: PlanType): { origin: StockOrigin; planType: PlanType } {
   if (planType === 'qualified_pre_macron') return { origin: 'FQ', planType };
@@ -167,8 +176,10 @@ export function BulkQualifyPanel({ eligibleCount, onApply, secondaryAction, comp
             </div>
           </div>
           <p className="text-xs text-gray-500">
-            La loi Macron s'applique aux attributions à partir du 8 août 2015. Les dates d'acquisition (vesting) sont
-            généralement décalées de 3-4 ans. Ajustez la date pivot selon votre situation réelle.
+            Chez Microsoft, le régime Macron s'applique aux attributions à partir du <strong>30 novembre 2016</strong>.
+            Avec le calendrier MSFT pré-juillet 2017 (80 % à Y+2, 20 % à Y+3), les premiers vests Macron arrivent
+            fin 2018 et les derniers vests pré-Macron jusqu'à fin 2019&nbsp;: une zone de chevauchement existe.
+            Ajustez la date pivot selon votre situation réelle, ou qualifiez les lots ambigus manuellement.
           </p>
         </div>
       )}

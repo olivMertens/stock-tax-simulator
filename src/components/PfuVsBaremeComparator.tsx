@@ -178,6 +178,7 @@ function ComparisonCard({ title, result, selected, recommended, onSelect }: Comp
           <Row label="IR PV cession" value={result.capitalGainTax.ir} />
           <Row label="PS PV cession" value={result.capitalGainTax.ps} />
           {result.cehr > 0 && <Row label="CEHR" value={result.cehr} />}
+          {result.cdhr > 0 && <Row label="CDHR" value={result.cdhr} />}
         </div>
       </details>
     </button>

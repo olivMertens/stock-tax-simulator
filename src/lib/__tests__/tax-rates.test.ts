@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateProgressiveTax,
   calculateCEHR,
+  calculateCDHR,
   getTaxConfig,
 } from '../tax-rates';
 
@@ -125,6 +126,68 @@ describe('calculateCEHR', () => {
   });
 });
 
+describe('calculateCDHR', () => {
+  it('returns 0 below the single threshold (250 k)', () => {
+    expect(calculateCDHR(200000, 0, 'single')).toBe(0);
+    expect(calculateCDHR(250000, 0, 'single')).toBe(0);
+  });
+
+  it('returns 0 below the couple threshold (500 k)', () => {
+    expect(calculateCDHR(450000, 0, 'couple')).toBe(0);
+    expect(calculateCDHR(500000, 0, 'couple')).toBe(0);
+  });
+
+  it('returns 0 when effective IR rate is already ≥ 20 % of adj. RFR', () => {
+    // Adj. RFR = 400 k, adj. IR = 80 k (= 20 %) → no CDHR
+    expect(calculateCDHR(400000, 80000, 'single')).toBe(0);
+    expect(calculateCDHR(400000, 100000, 'single')).toBe(0);
+  });
+
+  it('lifts a 12.8 % effective IR (PFU) up to 20 %', () => {
+    // Single, adj. RFR = 400 k, adj. IR = 51.2 k (= 12.8 %)
+    // CDHR = 20 % × 400 k − 51.2 k = 80 k − 51.2 k = 28.8 k
+    const cdhr = calculateCDHR(400000, 51200, 'single');
+    expect(cdhr).toBeCloseTo(28800, 2);
+  });
+
+  it('applies to couples once adj. RFR > 500 k', () => {
+    // Couple, adj. RFR = 800 k, adj. IR = 100 k (= 12.5 %)
+    // Target = 160 k → CDHR = 60 k
+    const cdhr = calculateCDHR(800000, 100000, 'couple');
+    expect(cdhr).toBeCloseTo(60000, 2);
+  });
+
+  // Décote (CGI 224 III 5°). Worked example reproduced from
+  // jpchatelainavocat.fr "Eléments de calcul de la CDHR" §3.5:
+  //   Single, RFR retraité = 310 000 €, threshold low = 250 000 €
+  //   ⇒ imposition retenue = 82,5 % × 60 000 = 49 500 €
+  it('applies the décote between 250 k and 330 k (single)', () => {
+    // RFR = 310 k, IR = 35 k → CDHR due = 49 500 − 35 000 = 14 500
+    expect(calculateCDHR(310000, 35000, 'single')).toBeCloseTo(14500, 2);
+    // RFR = 310 k, IR = 50 k → CDHR due = 0 (IR ≥ 49 500)
+    expect(calculateCDHR(310000, 50000, 'single')).toBe(0);
+    // RFR = 310 k, IR = 45 k → CDHR due = 49 500 − 45 000 = 4 500
+    expect(calculateCDHR(310000, 45000, 'single')).toBeCloseTo(4500, 2);
+  });
+
+  it('décote ramps from 0 at 250 k to 66 k at 330 k (single, no IR)', () => {
+    // At threshold_low: target = 0
+    expect(calculateCDHR(250001, 0, 'single')).toBeCloseTo(0.825, 4);
+    // At threshold_high: target = 82,5 % × 80 000 = 66 000 = 20 % × 330 000
+    expect(calculateCDHR(330000, 0, 'single')).toBeCloseTo(66000, 2);
+    // Just above threshold_high: headline 20 % rule kicks in
+    expect(calculateCDHR(330001, 0, 'single')).toBeCloseTo(66000.2, 2);
+  });
+
+  it('applies the décote between 500 k and 660 k (couple)', () => {
+    // RFR = 600 k, IR = 50 k → target = 82,5 % × 100 000 = 82 500
+    //                          CDHR = 82 500 − 50 000 = 32 500
+    expect(calculateCDHR(600000, 50000, 'couple')).toBeCloseTo(32500, 2);
+    // At couple threshold_high: target = 82,5 % × 160 000 = 132 000 = 20 % × 660 000
+    expect(calculateCDHR(660000, 0, 'couple')).toBeCloseTo(132000, 2);
+  });
+});
+
 describe('getTaxConfig', () => {
   it('returns 2024 config for fiscal year 2024', () => {
     const config = getTaxConfig(2024);
@@ -139,11 +202,25 @@ describe('getTaxConfig', () => {
     expect(config.psPatrimoine).toBe(0.186); // retroactive CSG increase
   });
 
+  it('keeps dividends 2025 at 17,2 % PS / 30 % PFU (KPMG p. 33, fait générateur rule)', () => {
+    const config = getTaxConfig(2025);
+    expect(config.psDividends).toBe(0.172);
+    expect(config.pfuDividendsTotalRate).toBe(0.300);
+    expect(config.csgDeductibleDividends).toBe(0.068);
+  });
+
   it('returns 2026 config with updated CSG', () => {
     const config = getTaxConfig(2026);
     expect(config.psPatrimoine).toBe(0.186);
     expect(config.csgDeductible).toBe(0.082);
     expect(config.pfuTotalRate).toBe(0.314);
+  });
+
+  it('aligns dividends 2026 on the post-LFSS-2025 rates (18,6 % PS / 31,4 % PFU)', () => {
+    const config = getTaxConfig(2026);
+    expect(config.psDividends).toBe(0.186);
+    expect(config.pfuDividendsTotalRate).toBe(0.314);
+    expect(config.csgDeductibleDividends).toBe(0.082);
   });
 
   it('falls back to latest config for future years', () => {

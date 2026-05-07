@@ -18,6 +18,7 @@ function makeResult(overrides: Partial<TaxSimulationResult> = {}): TaxSimulation
       remainingLosses: 0, netLoss: 0,
     },
     cehr: 0,
+    cdhr: 0,
     totalTax: 0,
     netAmount: 0,
     effectiveTaxRate: 0,

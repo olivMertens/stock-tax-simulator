@@ -10,10 +10,14 @@ import type {
 } from './types';
 import {
   calculateCEHR,
+  calculateCDHR,
   getHoldingAbatementRate,
   getTaxConfig,
 } from './tax-rates';
-import { calculateAcquisitionGainTax } from './acquisition-tax';
+import {
+  calculateAcquisitionGainTax,
+  macronAbatementRateFromHoldingYears,
+} from './acquisition-tax';
 import { calculateCapitalGainTax } from './capital-gain-tax';
 
 // Re-export sub-modules for backward compatibility
@@ -125,8 +129,35 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
       }, undefined as Date | undefined)
     : undefined;
 
-  const hasLongHolding = safeSimulation.lots.some((e) => e.lot.holdingPeriod === 'Long');
-  const holdingPeriod: 'Short' | 'Long' = hasLongHolding ? 'Long' : 'Short';
+  // Macron abatement rate per KPMG 2025 (p. 23, 27): 0 % if held < 2 years
+  // between vesting and sale, 50 % between 2 and 8 years, 65 % beyond 8 years.
+  // We compute a per-lot rate (using actual vesting → sale duration) and take
+  // a weighted average across all Macron-eligible acquisition gains.
+  // The weighted average is mathematically exact when total Macron gain is
+  // ≤ 300 k€ and a defensible approximation above (the > 300 k€ fraction
+  // never receives any abatement regardless).
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+  let macronAbatementWeightedSum = 0;
+  let macronAbatementWeightTotal = 0;
+  for (let i = 0; i < safeSimulation.lots.length; i++) {
+    const entry = safeSimulation.lots[i];
+    const lotResult = lotResults[i];
+    if (lotResult.planType === 'qualified_pre_macron') continue;
+    if (lotResult.acquisitionGain <= 0) continue;
+    const vestDate = entry.lot.acquisitionDate;
+    const saleDate = entry.saleDate ?? new Date();
+    const holdingYears = Math.max(
+      0,
+      (saleDate.getTime() - vestDate.getTime()) / MS_PER_YEAR
+    );
+    const rate = macronAbatementRateFromHoldingYears(holdingYears);
+    macronAbatementWeightedSum += rate * lotResult.acquisitionGain;
+    macronAbatementWeightTotal += lotResult.acquisitionGain;
+  }
+  const effectiveMacronAbatementRate =
+    macronAbatementWeightTotal > 0
+      ? macronAbatementWeightedSum / macronAbatementWeightTotal
+      : 0;
 
   const macronTax = calculateAcquisitionGainTax(
     macronAcqGain,
@@ -134,7 +165,7 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
     safeSimulation.taxShares,
     'qualified_macron',
     undefined,
-    holdingPeriod,
+    effectiveMacronAbatementRate,
     config
   );
 
@@ -149,7 +180,8 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
     safeSimulation.taxShares,
     'qualified_pre_macron',
     earliestGrantDate,
-    holdingPeriod,
+    // Pre-Macron path ignores this argument; pass 0 explicitly.
+    0,
     config
   );
 
@@ -198,7 +230,19 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
   const rfi = safeSimulation.otherTaxableIncome + totalAcquisitionGain + netCapitalGainForRfi;
   const cehr = calculateCEHR(rfi, safeSimulation.familyStatus, config);
 
-  const totalTax = acquisitionGainTax.total + capitalGainTax.total + cehr;
+  // CDHR (CGI art. 224, FY 2025+). Approximation:
+  //   adjusted RFR  ≈ RFR (other income + raw acq gain + net cap gain)
+  //   adjusted IR   ≈ IR barème (acq gain) + IR PFU/barème (cap gain) + CEHR
+  // The income tax components used here exclude PS (social surtaxes) since
+  // CDHR is an income-tax top-up, not a social charge top-up.
+  const adjustedIr =
+    acquisitionGainTax.irBelow +
+    acquisitionGainTax.irAbove +
+    capitalGainTax.ir +
+    cehr;
+  const cdhr = calculateCDHR(rfi, adjustedIr, safeSimulation.familyStatus);
+
+  const totalTax = acquisitionGainTax.total + capitalGainTax.total + cehr + cdhr;
   const netAmount = totalProceeds - totalTax;
   const effectiveTaxRate = totalProceeds > 0 ? (totalTax / totalProceeds) * 100 : 0;
 
@@ -209,6 +253,7 @@ export function runSimulation(simulation: SaleSimulation): TaxSimulationResult {
     acquisitionGainTax,
     capitalGainTax,
     cehr,
+    cdhr,
     totalTax,
     netAmount,
     effectiveTaxRate,

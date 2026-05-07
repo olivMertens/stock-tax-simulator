@@ -46,21 +46,21 @@ function makeSim(entries: SaleLotEntry[], overrides: Partial<SaleSimulation> = {
 
 describe('Acquisition gain — 300 k€ threshold edge cases', () => {
   it('gain exactly at 300 000 € stays fully below threshold', () => {
-    const r = calculateAcquisitionGainTax(AGA_THRESHOLD, 0, 1, 'qualified_macron', undefined, 'Short', cfg2025);
+    const r = calculateAcquisitionGainTax(AGA_THRESHOLD, 0, 1, 'qualified_macron', undefined, 0.5, cfg2025);
     expect(r.below300k).toBe(AGA_THRESHOLD);
     expect(r.above300k).toBe(0);
     expect(r.salaryContribution).toBe(0);
   });
 
   it('gain at 300 001 € puts exactly 1 € above threshold', () => {
-    const r = calculateAcquisitionGainTax(AGA_THRESHOLD + 1, 0, 1, 'qualified_macron', undefined, 'Short', cfg2025);
+    const r = calculateAcquisitionGainTax(AGA_THRESHOLD + 1, 0, 1, 'qualified_macron', undefined, 0.5, cfg2025);
     expect(r.below300k).toBe(AGA_THRESHOLD);
     expect(r.above300k).toBe(1);
     expect(r.salaryContribution).toBeCloseTo(1 * cfg2025.salaryContributionRate, 4);
   });
 
   it('gain at 299 999 € stays fully below with no salary contribution', () => {
-    const r = calculateAcquisitionGainTax(AGA_THRESHOLD - 1, 0, 1, 'qualified_macron', undefined, 'Short', cfg2025);
+    const r = calculateAcquisitionGainTax(AGA_THRESHOLD - 1, 0, 1, 'qualified_macron', undefined, 0.5, cfg2025);
     expect(r.below300k).toBe(AGA_THRESHOLD - 1);
     expect(r.above300k).toBe(0);
     expect(r.salaryContribution).toBe(0);
@@ -74,21 +74,21 @@ describe('Acquisition gain — 300 k€ threshold edge cases', () => {
 describe('FQ pre/post 28-sep-2012 boundary', () => {
   it('grant on 2012-09-27 (before) applies PS patrimoine', () => {
     const r = calculateAcquisitionGainTax(
-      50000, 0, 1, 'qualified_pre_macron', new Date(2012, 8, 27), 'Short', cfg2025
+      50000, 0, 1, 'qualified_pre_macron', new Date(2012, 8, 27), 0.5, cfg2025
     );
     expect(r.psBelow).toBeCloseTo(50000 * cfg2025.psPatrimoine, 2);
   });
 
   it('grant on 2012-09-28 (boundary) falls into the post-sep path (PS activité)', () => {
     const r = calculateAcquisitionGainTax(
-      50000, 0, 1, 'qualified_pre_macron', new Date(2012, 8, 28), 'Short', cfg2025
+      50000, 0, 1, 'qualified_pre_macron', new Date(2012, 8, 28), 0.5, cfg2025
     );
     expect(r.psBelow).toBeCloseTo(50000 * cfg2025.psActivite, 2);
   });
 
   it('grant on 2012-09-29 (after) applies PS activité', () => {
     const r = calculateAcquisitionGainTax(
-      50000, 0, 1, 'qualified_pre_macron', new Date(2012, 8, 29), 'Short', cfg2025
+      50000, 0, 1, 'qualified_pre_macron', new Date(2012, 8, 29), 0.5, cfg2025
     );
     expect(r.psBelow).toBeCloseTo(50000 * cfg2025.psActivite, 2);
   });

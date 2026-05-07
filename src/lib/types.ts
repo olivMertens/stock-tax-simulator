@@ -159,6 +159,8 @@ export interface TaxSimulationResult {
   acquisitionGainTax: AcquisitionGainTaxResult;
   capitalGainTax: CapitalGainTaxResult;
   cehr: number;
+  /** CDHR (Contribution Différentielle sur les Hauts Revenus, CGI art. 224, FY 2025+). */
+  cdhr: number;
   totalTax: number;
   netAmount: number;
   effectiveTaxRate: number;

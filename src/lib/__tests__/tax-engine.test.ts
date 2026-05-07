@@ -190,7 +190,7 @@ describe('calculateAcquisitionGainTax', () => {
 
   describe('Macron regime (≤300k)', () => {
     it('applies 50% abatement for Short holding', () => {
-      const result = calculateAcquisitionGainTax(100000, 80000, 2, 'qualified_macron', undefined, 'Short');
+      const result = calculateAcquisitionGainTax(100000, 80000, 2, 'qualified_macron', undefined, 0.5);
       expect(result.below300k).toBe(100000);
       expect(result.above300k).toBe(0);
       expect(result.abatement50).toBe(50000); // 50% of 100k
@@ -198,15 +198,16 @@ describe('calculateAcquisitionGainTax', () => {
       expect(result.psBelow).toBeCloseTo(100000 * 0.186, 2);
     });
 
-    it('applies 50% abatement for Long holding too (fixed for Macron)', () => {
-      const result = calculateAcquisitionGainTax(100000, 80000, 2, 'qualified_macron', undefined, 'Long');
-      expect(result.abatement50).toBe(50000); // 50% of 100k, same as Short
+    it('applies 0 % abatement when caller signals < 2 years held (KPMG p. 27)', () => {
+      const result = calculateAcquisitionGainTax(100000, 80000, 2, 'qualified_macron', undefined, 0);
+      expect(result.abatement50).toBe(0); // 100% taxable in 1TZ
+      expect(result.below300k).toBe(100000);
     });
   });
 
   describe('Macron regime (>300k)', () => {
     it('splits correctly at 300k threshold', () => {
-      const result = calculateAcquisitionGainTax(500000, 80000, 2, 'qualified_macron', undefined, 'Short');
+      const result = calculateAcquisitionGainTax(500000, 80000, 2, 'qualified_macron', undefined, 0.5);
       expect(result.below300k).toBe(300000);
       expect(result.above300k).toBe(200000);
       expect(result.abatement50).toBe(150000); // 50% of 300k
@@ -236,7 +237,7 @@ describe('calculateAcquisitionGainTax', () => {
   });
 
   it('computes deductible CSG on total acquisition gain', () => {
-    const result = calculateAcquisitionGainTax(200000, 80000, 2, 'qualified_macron', undefined, 'Short');
+    const result = calculateAcquisitionGainTax(200000, 80000, 2, 'qualified_macron', undefined, 0.5);
     expect(result.deductibleCSG).toBeCloseTo(200000 * 0.082, 2);
   });
 });

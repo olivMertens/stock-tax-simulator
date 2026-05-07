@@ -240,6 +240,19 @@ export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode
                 </tr>
               )}
 
+              {/* CDHR */}
+              {r.cdhr > 0 && (
+                <tr className="border-b">
+                  <td className="py-2 font-medium">
+                    Contribution différentielle hauts revenus (CDHR)
+                    <span className="block text-xs font-normal text-gray-500">
+                      Plancher d'IR à 20 % du RFR ajusté (FY 2025+)
+                    </span>
+                  </td>
+                  <td className="py-2 text-right text-red-600">{formatEUR(r.cdhr)}</td>
+                </tr>
+              )}
+
               {/* Totals */}
               <tr className="border-b-2 border-gray-300 bg-red-50">
                 <td className="py-3 font-bold text-lg">Total impôts et prélèvements</td>

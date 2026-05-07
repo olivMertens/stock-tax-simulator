@@ -11,6 +11,7 @@ import {
 } from '../lib/dividends';
 import { fetchECBRates } from '../lib/ecb-rates';
 import { formatEUR } from '../lib/utils';
+import { getTaxConfig } from '../lib/tax-rates';
 
 interface DividendsDeclarationProps {
   dividends: DividendEvent[];
@@ -114,6 +115,15 @@ export function DividendsDeclaration({ dividends, fiscalYear }: DividendsDeclara
 
   const lines = buildDeclarationLines(yearSummary);
 
+  // Dividends are taxed at the rate in force at the payment date (fait
+  // générateur), not at the annual collection time. So a payment made in
+  // year Y uses the year-Y PFU rate even if declared in year Y+1.
+  const dividendPfuRateLabel = (
+    getTaxConfig(selectedYear).pfuDividendsTotalRate * 100
+  )
+    .toFixed(1)
+    .replace('.', ',');
+
   return (
     <Card>
       <CardHeader>
@@ -152,7 +162,7 @@ export function DividendsDeclaration({ dividends, fiscalYear }: DividendsDeclara
           code="2BH"
           label="Revenus éligibles à l'abattement de 40% (si option barème)"
           amount={lines.box2BH}
-          note="À reporter uniquement si vous optez pour l'imposition au barème progressif. Sinon, PFU à 30% sur 2DC."
+          note={`À reporter uniquement si vous optez pour l'imposition au barème progressif. Sinon, PFU à ${dividendPfuRateLabel}\u202f% sur 2DC.`}
           copied={copied === '2BH'}
           onCopy={() => copyValue('2BH', lines.box2BH)}
         />
