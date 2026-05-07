@@ -1,7 +1,7 @@
 import type { SoldLot, StockLot, StockOrigin, HoldingPeriod, PlanType, ImportCurrency } from '../../types';
 import type { DividendEvent } from '../fidelity/transactions-parser';
 import { parseWorksheet, parseSharedStrings, readXlsx } from '../../xlsx-reader';
-import { MS_MISSING_LOT_DETAIL_MESSAGE } from './sales-parser';
+import { MS_MISSING_LOT_DETAIL_MESSAGE, MS_NON_ENGLISH_EXPORT_MESSAGE } from './sales-parser';
 
 /**
  * Parser for the Morgan Stanley "Participant Share Sales Report" XLSX file.
@@ -465,6 +465,22 @@ function columnLetterToIndex(letters: string): number {
 }
 
 /**
+ * True if any cell in the workbook contains a non-USD currency symbol
+ * (€ or £). Used as a fast "non-English export" signal — Morgan Stanley
+ * localizes section titles, dates and statuses jointly with the display
+ * currency, so a single symbol is enough to disambiguate.
+ */
+function containsNonUsdCurrencySymbol(rows: string[][]): boolean {
+  for (const row of rows) {
+    if (!row) continue;
+    for (const cell of row) {
+      if (cell && (cell.includes('€') || cell.includes('£'))) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Walk pre-extracted Activity worksheet cells and produce the three
  * collections. Exposed for testing without going through the XLSX layer;
  * production code path is `parseMsActivityXlsx`.
@@ -472,6 +488,16 @@ function columnLetterToIndex(letters: string): number {
  * Throws if a non-USD currency code is detected anywhere in the data rows.
  */
 export function parseMsActivityCells(cellsRows: string[][]): ActivityParseResult {
+  // If any cell carries a non-USD currency symbol (€ or £) the export was
+  // generated with a non-English locale — section titles will be localized
+  // too, so `findSections` would silently return [] and we would mis-report
+  // it as a "bad file". Detecting the currency marker first lets us surface
+  // the actionable FR/EUR error (the file IS a Share Sales Report, just in
+  // the wrong locale).
+  if (containsNonUsdCurrencySymbol(cellsRows)) {
+    throw new Error(MS_NON_ENGLISH_EXPORT_MESSAGE);
+  }
+
   const sections = findSections(cellsRows);
   if (sections.length === 0) {
     throw new Error(

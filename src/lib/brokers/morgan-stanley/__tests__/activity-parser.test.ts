@@ -142,6 +142,18 @@ describe('parseMsActivityCells — no sections', () => {
     ];
     expect(() => parseMsActivityCells(cells)).toThrow(/aucune section attendue/);
   });
+
+  it('throws the FR/EUR error (not the bad-file error) when section titles are localised but the export is otherwise valid', () => {
+    // French export: section titles aren't recognised so findSections() returns [],
+    // but the workbook clearly contains EUR amounts. We must surface the
+    // actionable "switch to English/USD" message instead of "fichier non reconnu".
+    const cells: string[][] = [
+      row('Ventes d\u2019actions'),
+      row('Date', 'Nom du plan', 'Statut', 'Prix de vente', 'Quantit\u00e9', 'Date d\u2019acquisition', 'Valeur d\u2019acquisition'),
+      row('21-janv.-2025', 'Microsoft Stock Awards', 'Complet', '\u20ac365.99', '5', '17-avr.-2023', '\u20ac1,217.72'),
+    ];
+    expect(() => parseMsActivityCells(cells)).toThrow(/anglais.*USD/);
+  });
 });
 
 describe('parseMsActivityCells — blank-row separation', () => {

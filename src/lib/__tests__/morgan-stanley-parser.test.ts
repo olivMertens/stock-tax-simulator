@@ -124,4 +124,16 @@ describe('parseMsSalesCsv', () => {
     expect(sales[0].saleDate.getDate()).toBe(22);
     expect(sales[0].acquisitionDate.getFullYear()).toBe(2022);
   });
+
+  it('throws an explicit error on non-English / non-USD exports (FR/EUR)', () => {
+    // Mirrors share_sales_test.csv: French month abbreviations, "Complet" status,
+    // amounts prefixed with € — i.e. the Morgan Stanley UI was set to French/EUR.
+    const frEuro = [
+      'Share Sales,,,,,,,,,,,,',
+      'Date,Plan Name,Fund Name,Type,Order Status,Sale Price,,Quantity,Net Cash Proceeds,,Acquisition Date,Acquisition Value,',
+      '21-janv.-2025,Microsoft Stock Awards,MSFT,Ad hoc,Complet,€365.99,EUR,5,"€4,387.52",EUR,17-avr.-2023,"€1,217.72",EUR',
+      '21-janv.-2025,Microsoft Stock Awards,MSFT,Ad hoc,Complet,€365.99,EUR,3,"€4,387.52",EUR,31-août-2022,€671.47,EUR',
+    ].join('\n');
+    expect(() => parseMsSalesCsv(frEuro)).toThrow(/anglais.*USD/);
+  });
 });

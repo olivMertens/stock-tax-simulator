@@ -188,6 +188,21 @@ export const MS_MISSING_LOT_DETAIL_MESSAGE =
   '\u00ab\u00a0Show Withdrawal by Lot\u00a0\u00bb (sinon le simulateur ne peut pas calculer la plus-value).';
 
 /**
+ * Error thrown when the export was generated with a non-English / non-USD
+ * locale (typically FR/EUR or GB/GBP). The simulator only supports the
+ * EN/USD export. The signal is the presence of a non-USD currency symbol
+ * (€ or £) anywhere in the data rows; localized statuses ("Complet",
+ * "Annulé", …) and date abbreviations ("janv.", "août", …) would also
+ * be rejected silently.
+ */
+export const MS_NON_ENGLISH_EXPORT_MESSAGE =
+  'Cet export Morgan Stanley n\u2019est pas en anglais / USD. ' +
+  'Le simulateur ne prend en charge que les exports en anglais et en USD. ' +
+  'Re-t\u00e9l\u00e9charge le rapport depuis Morgan Stanley apr\u00e8s avoir ' +
+  'mis l\u2019interface en anglais (Profile \u2192 Language \u2192 English) et ' +
+  's\u00e9lectionn\u00e9 l\u2019affichage en USD.';
+
+/**
  * Same as `rowsFromCells` but returns null when no recognizable Share Sales
  * header is found. Used by the XLSX path which scans multiple sheets.
  */
@@ -204,6 +219,9 @@ function tryRowsFromCells(rows: string[][]): SoldLot[] | null {
   // is the "Show Withdrawal by Lot" footgun.
   let completedRowsMissingLotDetail = 0;
   let totalCompletedRows = 0;
+  // Set when any data cell carries a non-USD currency symbol — the export
+  // was generated with a non-English locale and we don't support those.
+  let nonEnglishExport = false;
 
   for (const row of rows) {
     if (!row || row.length === 0) continue;
@@ -211,6 +229,15 @@ function tryRowsFromCells(rows: string[][]): SoldLot[] | null {
     if (!headerIdx) {
       headerIdx = findHeaderIndex(row);
       continue;
+    }
+
+    if (!nonEnglishExport) {
+      for (const cell of row) {
+        if (cell && (cell.includes('€') || cell.includes('£'))) {
+          nonEnglishExport = true;
+          break;
+        }
+      }
     }
 
     const get = (k: keyof ShareSaleRow) => (row[headerIdx![k]] ?? '').toString();
@@ -236,6 +263,10 @@ function tryRowsFromCells(rows: string[][]): SoldLot[] | null {
 
     const sold = rowToSoldLot(sale, counter);
     if (sold) out.push(sold);
+  }
+
+  if (headerIdx && nonEnglishExport && out.length === 0) {
+    throw new Error(MS_NON_ENGLISH_EXPORT_MESSAGE);
   }
 
   if (
@@ -269,6 +300,23 @@ export function parseMsSalesCsv(csvText: string): SoldLot[] {
 
 /** Parse a Morgan Stanley "Participant Share Sales Report" XLSX file. */
 export async function parseMsSalesXlsx(buffer: ArrayBuffer): Promise<SoldLot[]> {
+  // Excel writes legacy binary `.xls` (OLE2 / `D0 CF 11 E0`) under a `.xlsx`
+  // extension when a sensitivity label is applied. These files are not ZIPs
+  // and any XLSX (OOXML) parser will fail mid-archive — surface the
+  // actionable message instead of the generic "EOCD introuvable".
+  if (buffer.byteLength >= 8) {
+    const v = new DataView(buffer);
+    if (v.getUint32(0, false) === 0xd0cf11e0 && v.getUint32(4, false) === 0xa1b11ae1) {
+      throw new Error(
+        "Ce fichier est en format Excel binaire (.xls) malgré l'extension .xlsx. " +
+        "C'est généralement dû à un label de sensibilité (Confidential, Internal Only) " +
+        "qui empêche Excel de l'écrire en XLSX. Solution : ouvre le fichier dans Excel, " +
+        'retire ou abaisse le label de sensibilité, puis Enregistrer sous → Classeur Excel (.xlsx). ' +
+        "À défaut, utilise l'export CSV depuis Morgan Stanley.",
+      );
+    }
+  }
+
   // The Participant Share Sales Report typically ships with several sheets
   // (Summary, Activity, Notes…). The Share Sales table is not always sheet 1,
   // so we try every sheet and keep the first one whose first row matches our
