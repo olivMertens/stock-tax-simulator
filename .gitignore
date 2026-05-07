@@ -39,3 +39,9 @@ scripts/ms-inspect.out
 scripts/trim-logos.ps1
 .git-msg-*.txt
 
+# Local-only KPMG reference deck (copyrighted, not redistributed)
+public/Stock Awards - Déclaration des revenus 2025 - KPMG Avocats - ENG.pdf
+
+# Ad-hoc scratch / probe files
+_probe.mjs.ts
+
