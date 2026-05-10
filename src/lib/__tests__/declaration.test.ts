@@ -231,4 +231,32 @@ describe('declaration anti-regression guards', () => {
     const totalCost = ln.quantity * ln.costBasis;     // line 523
     expect(ln.gainLoss).toBeCloseTo(totalSale - totalCost, 6); // line 524
   });
+
+  it('mentions 2074-ABT when a holding-period rebate is applied (case 3SG > 0)', () => {
+    const r = makeResult({
+      capitalGainTax: { ...result.capitalGainTax, holdingAbatement: 1234 },
+    });
+    const decl = generateDeclaration(r, [entry], 2024);
+    expect(decl.case3SG).toBe(1234);
+    const text = formatDeclarationText(decl);
+    expect(text).toMatch(/2074-ABT/);
+    expect(text).toMatch(/durée de détention/i);
+  });
+
+  it('mentions cadre 12 of 2074 for 10-year loss carry-forward when 3VH > 0', () => {
+    const lossResult = makeResult({
+      capitalGainTax: { ...result.capitalGainTax, netGain: 0, netLoss: 2500 },
+    });
+    const decl = generateDeclaration(lossResult, [entry], 2025);
+    const text = formatDeclarationText(decl);
+    expect(text).toMatch(/cadre 12/);
+    expect(text).toMatch(/2025/); // fiscal year line
+    expect(text).toMatch(/reportable/i);
+  });
+
+  it('does NOT mention 2074-ABT when no holding-period rebate applies', () => {
+    const decl = generateDeclaration(result, [entry], 2024); // holdingAbatement = 0
+    const text = formatDeclarationText(decl);
+    expect(text).not.toMatch(/2074-ABT/);
+  });
 });

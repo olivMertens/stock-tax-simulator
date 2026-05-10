@@ -203,8 +203,17 @@ export const DeclarationGuide = React.memo(function DeclarationGuide({ result, l
                     La CSG déductible de <strong>{formatEUR(declaration.deductibleCSGNextYear)}</strong> sera à déduire sur la déclaration de l'année suivante.
                   </li>
                 )}
+                {declaration.case3SG > 0 && (
+                  <li>
+                    Abattement durée de détention de <strong>{formatEUR(declaration.case3SG)}</strong> appliqué (titres acquis avant le 01/01/2018, option barème).
+                    Compléter l'annexe <strong>2074-ABT</strong> « Fiche de calcul de l'abattement pour durée de détention » et reporter le montant en case 3SG.
+                  </li>
+                )}
                 {declaration.case3VH > 0 && (
-                  <li>La moins-value de <strong>{formatEUR(declaration.case3VH)}</strong> est reportable pendant 10 ans.</li>
+                  <li>
+                    La moins-value de <strong>{formatEUR(declaration.case3VH)}</strong> est reportable pendant 10 ans.
+                    À inscrire également au <strong>cadre 12 de la 2074</strong> « Suivi de vos moins-values antérieures reportables sur 10 ans », ligne {declaration.fiscalYear}.
+                  </li>
                 )}
               </ul>
             </div>

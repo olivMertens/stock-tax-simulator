@@ -103,6 +103,13 @@ export function formatDeclarationText(data: DeclarationData): string {
     const totalCost = line.quantity * line.costBasis;
     text += `  ${line.date} (${F.saleDate.line}) | ${line.origin} (${F.designation.line}) | ${line.quantity} actions (${F.quantity.line}) | PU vente ${fmt(line.salePrice)} (${F.unitSalePrice.line}) | Montant vente ${fmt(totalSale)} (${F.totalSale.line}) | PU acquisition ${fmt(line.costBasis)} (${F.unitAcqPrice.line}) | Prix revient ${fmt(totalCost)} (${F.costBasis.line}) | ${line.gainLoss >= 0 ? 'PV' : 'MV'} ${fmt(Math.abs(line.gainLoss))} (${F.result.line})\n`;
   }
+  if (data.case3SG > 0) {
+    text += `\n  ⚠️ Abattement durée de détention de ${fmt(data.case3SG)} appliqué (titres acquis avant le 01/01/2018, option barème).\n`;
+    text += `     → Compléter l'annexe 2074-ABT « Fiche de calcul de l'abattement pour durée de détention » et reporter le montant en case 3SG.\n`;
+  }
+  if (data.case3VH > 0) {
+    text += `\n  ⚠️ Moins-value globale de ${fmt(data.case3VH)} : à inscrire également au cadre 12 de la 2074 « Suivi de vos moins-values antérieures reportables sur 10 ans », ligne ${data.fiscalYear}.\n`;
+  }
   text += '\n';
 
   text += `PRÉLÈVEMENTS SOCIAUX :\n`;
