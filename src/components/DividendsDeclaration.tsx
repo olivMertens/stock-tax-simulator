@@ -9,6 +9,7 @@ import {
   groupDividendsByYear,
   buildDeclarationLines,
 } from '../lib/dividends';
+import { FORM_2042_DIVIDENDS } from '../lib/tax-forms';
 import { fetchECBRates } from '../lib/ecb-rates';
 import { formatEUR } from '../lib/utils';
 import { getTaxConfig } from '../lib/tax-rates';
@@ -60,6 +61,14 @@ export function DividendsDeclaration({ dividends, fiscalYear }: DividendsDeclara
     setLastDefaultYear(defaultYear);
     setSelectedYear(defaultYear);
   }
+
+  // The option for the progressive tax rates (case 2OP) is GLOBAL and applies
+  // to all investment income of the household (dividends, interest, capital
+  // gains). The default is PFU (flat tax 31,4 %) which is the legal default.
+  const [taxMode, setTaxMode] = React.useState<'pfu' | 'bareme'>('pfu');
+  // The PFNL trimestriel (form 2778-DIV) is rarely filed in practice: most
+  // taxpayers benefit from the "dispense" (RFR N-2 < 50k€ / 75k€). Default 0.
+  const [pfnlAlreadyPaidEur, setPfnlAlreadyPaidEur] = React.useState<number>(0);
 
   const yearSummary = React.useMemo(
     () => groups.find((g) => g.year === selectedYear) ?? null,
@@ -113,7 +122,7 @@ export function DividendsDeclaration({ dividends, fiscalYear }: DividendsDeclara
     );
   }
 
-  const lines = buildDeclarationLines(yearSummary);
+  const lines = buildDeclarationLines(yearSummary, { taxMode, pfnlAlreadyPaidEur });
 
   // Dividends are taxed at the rate in force at the payment date (fait
   // générateur), not at the annual collection time. So a payment made in
@@ -142,32 +151,97 @@ export function DividendsDeclaration({ dividends, fiscalYear }: DividendsDeclara
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {/* Tax mode toggle (case 2OP) — applies globally to all investment income. */}
+        <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg border border-blue-200 bg-blue-50 text-xs">
+          <span className="font-medium text-blue-900">Mode d'imposition (case 2OP) :</span>
+          <label className="inline-flex items-center gap-1 cursor-pointer">
+            <input
+              type="radio"
+              name="dividends-tax-mode"
+              value="pfu"
+              checked={taxMode === 'pfu'}
+              onChange={() => setTaxMode('pfu')}
+              className="h-3 w-3"
+            />
+            <span>PFU {dividendPfuRateLabel}{'\u202f'}% (par défaut)</span>
+          </label>
+          <label className="inline-flex items-center gap-1 cursor-pointer">
+            <input
+              type="radio"
+              name="dividends-tax-mode"
+              value="bareme"
+              checked={taxMode === 'bareme'}
+              onChange={() => setTaxMode('bareme')}
+              className="h-3 w-3"
+            />
+            <span>Barème progressif (cocher 2OP)</span>
+          </label>
+        </div>
+
         <DeclarationLine
-          code="2DC"
+          code={FORM_2042_DIVIDENDS.case2DC.code}
           label="Dividendes bruts (revenus de capitaux mobiliers)"
           amount={lines.box2DC}
-          note="Formulaire 2042 — à reporter tel quel."
+          note="Montant brut converti au taux BCE du jour de chaque versement."
           copied={copied === '2DC'}
           onCopy={() => copyValue('2DC', lines.box2DC)}
         />
+        {taxMode === 'pfu' ? (
+          <DeclarationLine
+            code={FORM_2042_DIVIDENDS.case2CG.code}
+            label="Revenus déjà soumis aux prélèvements sociaux sans CSG déductible"
+            amount={lines.box2CG}
+            note="Reporter le même montant qu'en 2DC (régime PFU)."
+            copied={copied === '2CG'}
+            onCopy={() => copyValue('2CG', lines.box2CG)}
+          />
+        ) : (
+          <DeclarationLine
+            code={FORM_2042_DIVIDENDS.case2BH.code}
+            label="Revenus déjà soumis aux PS avec CSG déductible si option barème"
+            amount={lines.box2BH}
+            note="Reporter le même montant qu'en 2DC (option barème, case 2OP cochée)."
+            copied={copied === '2BH'}
+            onCopy={() => copyValue('2BH', lines.box2BH)}
+            variant="success"
+          />
+        )}
         <DeclarationLine
-          code="2AB"
-          label="Crédit d'impôt lié aux revenus de capitaux mobiliers"
+          code={FORM_2042_DIVIDENDS.case2AB.code}
+          label="Crédit d'impôt sur valeurs étrangères (retenue US 15 %)"
           amount={lines.box2AB}
-          note="Retenue à la source US (15% par la convention fiscale France–USA), récupérable en crédit d'impôt."
+          note="Convention fiscale France–USA : crédit d'impôt récupérable contre l'IR français."
           copied={copied === '2AB'}
           onCopy={() => copyValue('2AB', lines.box2AB)}
         />
         <DeclarationLine
-          code="2BH"
-          label="Revenus éligibles à l'abattement de 40% (si option barème)"
-          amount={lines.box2BH}
-          note={`À reporter uniquement si vous optez pour l'imposition au barème progressif. Sinon, PFU à ${dividendPfuRateLabel}\u202f% sur 2DC.`}
-          copied={copied === '2BH'}
-          onCopy={() => copyValue('2BH', lines.box2BH)}
+          code={FORM_2042_DIVIDENDS.case2CK.code}
+          label="Prélèvement forfaitaire non libératoire déjà versé (PFNL via 2778-DIV)"
+          amount={lines.box2CK}
+          note="0 € si dispense (RFR N-2 < 50k€ célibataire / 75k€ couple) ou si 2778-DIV non déposés."
+          copied={copied === '2CK'}
+          onCopy={() => copyValue('2CK', lines.box2CK)}
+          editable={{ value: pfnlAlreadyPaidEur, onChange: setPfnlAlreadyPaidEur }}
+        />
+        <DeclarationLine
+          code={FORM_2042_DIVIDENDS.case8VL.code}
+          label="Impôt payé à l'étranger ouvrant droit à crédit d'impôt"
+          amount={lines.box8VL}
+          note="Section 7 « Revenus de source étrangère » — même montant qu'en 2AB."
+          copied={copied === '8VL'}
+          onCopy={() => copyValue('8VL', lines.box8VL)}
+        />
+        <DeclarationLine
+          code={FORM_2042_DIVIDENDS.case8PL.code}
+          label="Revenus nets de source étrangère"
+          amount={lines.box8PL}
+          note="Montant net des dividendes (après retenue US) ouvrant droit au crédit d'impôt."
+          copied={copied === '8PL'}
+          onCopy={() => copyValue('8PL', lines.box8PL)}
         />
         <p className="text-xs text-gray-500 pt-2 border-t border-gray-100">
           Conversion en euros au taux BCE du jour de chaque versement (méthode officielle DGFiP).
+          Référence : KPMG « Obligations fiscales Microsoft » (mai 2026).
         </p>
       </CardContent>
     </Card>
@@ -181,6 +255,8 @@ function DeclarationLine({
   note,
   copied,
   onCopy,
+  variant,
+  editable,
 }: {
   code: string;
   label: string;
@@ -188,9 +264,12 @@ function DeclarationLine({
   note: string;
   copied: boolean;
   onCopy: () => void;
+  variant?: 'success';
+  editable?: { value: number; onChange: (n: number) => void };
 }) {
+  const bg = variant === 'success' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200';
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+    <div className={`flex items-start gap-3 p-3 rounded-lg border ${bg}`}>
       <div className="shrink-0 px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono font-semibold">
         {code}
       </div>
@@ -199,7 +278,19 @@ function DeclarationLine({
         <p className="text-xs text-gray-500 mt-0.5">{note}</p>
       </div>
       <div className="shrink-0 flex items-center gap-2">
-        <span className="font-semibold tabular-nums">{formatEUR(amount)}</span>
+        {editable ? (
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={editable.value || 0}
+            onChange={(e) => editable.onChange(Number(e.target.value) || 0)}
+            className="w-24 px-2 py-1 text-sm text-right border border-gray-300 rounded tabular-nums"
+            aria-label={`Saisir la valeur de la case ${code}`}
+          />
+        ) : (
+          <span className="font-semibold tabular-nums">{formatEUR(amount)}</span>
+        )}
         <Button
           variant="ghost"
           size="icon"

@@ -47,24 +47,90 @@ describe('groupDividendsByYear', () => {
 });
 
 describe('buildDeclarationLines', () => {
-  it('maps the year summary to 2DC / 2AB / 2BH boxes', () => {
-    const summary = {
-      year: 2025,
-      count: 4,
-      grossUsd: 300,
-      taxWithheldUsd: 45,
-      netUsd: 255,
-      grossEur: 270,
-      taxWithheldEur: 40.5,
-      netEur: 229.5,
-      events: [],
-    };
+  const summary = {
+    year: 2025,
+    count: 4,
+    grossUsd: 300,
+    taxWithheldUsd: 45,
+    netUsd: 255,
+    grossEur: 270,
+    taxWithheldEur: 40.5,
+    netEur: 229.5,
+    events: [],
+  };
+
+  it('defaults to PFU: 2CG filled, 2BH = 0', () => {
     expect(buildDeclarationLines(summary)).toEqual({
       year: 2025,
+      taxMode: 'pfu',
       box2DC: 270,
+      box2CG: 270,
+      box2BH: 0,
       box2AB: 40.5,
-      box2BH: 270,
+      box2CK: 0,
+      box8VL: 40.5,
+      box8PL: 229.5,
     });
+  });
+
+  it('barème option: 2BH filled, 2CG = 0', () => {
+    const lines = buildDeclarationLines(summary, { taxMode: 'bareme' });
+    expect(lines.taxMode).toBe('bareme');
+    expect(lines.box2BH).toBe(270);
+    expect(lines.box2CG).toBe(0);
+  });
+
+  it('PFNL already paid is reported on 2CK only when provided', () => {
+    const lines = buildDeclarationLines(summary, { pfnlAlreadyPaidEur: 34.56 });
+    expect(lines.box2CK).toBe(34.56);
+  });
+
+  it('2AB and 8VL both reflect the foreign withholding (US 15 %)', () => {
+    const lines = buildDeclarationLines(summary);
+    expect(lines.box2AB).toBe(summary.taxWithheldEur);
+    expect(lines.box8VL).toBe(summary.taxWithheldEur);
+    expect(lines.box8PL).toBe(summary.netEur);
+  });
+});
+
+describe('dividends anti-regression guards', () => {
+  const summary = {
+    year: 2025,
+    count: 1,
+    grossUsd: 100,
+    taxWithheldUsd: 15,
+    netUsd: 85,
+    grossEur: 100,
+    taxWithheldEur: 15,
+    netEur: 85,
+    events: [],
+  };
+
+  it('2BH and 2CG are mutually exclusive (only one is non-zero)', () => {
+    const pfu = buildDeclarationLines(summary, { taxMode: 'pfu' });
+    const bareme = buildDeclarationLines(summary, { taxMode: 'bareme' });
+    expect(pfu.box2BH === 0 || pfu.box2CG === 0).toBe(true);
+    expect(bareme.box2BH === 0 || bareme.box2CG === 0).toBe(true);
+    expect(pfu.box2BH).toBe(0);
+    expect(bareme.box2CG).toBe(0);
+  });
+
+  it('does NOT report the foreign withholding on 2CK (which is the PFNL, not the US tax credit)', () => {
+    // Régression: 2CK n'est PAS le crédit d'impôt (qui va en 8VL).
+    const lines = buildDeclarationLines(summary);
+    expect(lines.box2CK).toBe(0);
+    expect(lines.box8VL).toBe(15);
+  });
+
+  it('keeps the full set of expected dividend boxes', () => {
+    const lines = buildDeclarationLines(summary);
+    expect(lines).toHaveProperty('box2DC');
+    expect(lines).toHaveProperty('box2CG');
+    expect(lines).toHaveProperty('box2BH');
+    expect(lines).toHaveProperty('box2AB');
+    expect(lines).toHaveProperty('box2CK');
+    expect(lines).toHaveProperty('box8VL');
+    expect(lines).toHaveProperty('box8PL');
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FORM_2042, FORM_2042C_AGA_MACRON, FORM_2074_CADRE_510 } from '../tax-forms';
+import { FORM_2042, FORM_2042_DIVIDENDS, FORM_2042C_AGA_MACRON, FORM_2074_CADRE_510 } from '../tax-forms';
 
 describe('tax-forms source of truth', () => {
   it('keeps 1UZ (not 1WZ) for AGA Macron 50% abatement', () => {
@@ -38,5 +38,15 @@ describe('tax-forms source of truth', () => {
     expect(FORM_2042.case3VH.code).toBe('3VH');
     expect(FORM_2042.case3SG.code).toBe('3SG');
     expect(FORM_2042.option2OP.code).toBe('2OP');
+  });
+
+  it('keeps 2042 dividend cases stable (KPMG mai 2026)', () => {
+    expect(FORM_2042_DIVIDENDS.case2DC.code).toBe('2DC');
+    expect(FORM_2042_DIVIDENDS.case2CG.code).toBe('2CG');
+    expect(FORM_2042_DIVIDENDS.case2BH.code).toBe('2BH');
+    expect(FORM_2042_DIVIDENDS.case2AB.code).toBe('2AB');
+    expect(FORM_2042_DIVIDENDS.case2CK.code).toBe('2CK');
+    expect(FORM_2042_DIVIDENDS.case8VL.code).toBe('8VL');
+    expect(FORM_2042_DIVIDENDS.case8PL.code).toBe('8PL');
   });
 });

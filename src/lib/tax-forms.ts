@@ -37,6 +37,30 @@ export const FORM_2042C_AGA_MACRON = {
   case1TT: { code: '1TT', label: "Gain d'acquisition AGA (fraction > 300k€)", form: '2042-C' },
 } as const satisfies Record<string, TaxCase>;
 
+/**
+ * Formulaire 2042 — section « Revenus des valeurs et capitaux mobiliers » (dividendes).
+ *
+ * Sources :
+ *   - KPMG Avocats, Obligations fiscales Microsoft, mai 2026 (slides 41–44)
+ *   - impots.gouv.fr, notice de la déclaration 2042 (revenus 2025)
+ *
+ * ⚠️ Mutex : selon le mode d'imposition choisi (case 2OP),
+ *   - PFU (par défaut)  → renseigner 2DC + **2CG** (2BH = 0)
+ *   - Barème (option globale via 2OP) → renseigner 2DC + **2BH** (2CG = 0)
+ * 2CK = PFNL trimestriel déjà payé via formulaire 2778-DIV (s'impute sur l'IR).
+ * 8VL = impôt étranger retenu (15 % US) ouvrant droit à crédit d'impôt.
+ * 8PL = montant net des revenus de capitaux mobiliers ouvrant droit à crédit d'impôt.
+ */
+export const FORM_2042_DIVIDENDS = {
+  case2DC:  { code: '2DC',  label: 'Revenus des actions et parts (dividendes bruts, abattement 40% si option barème)', form: '2042' },
+  case2CG:  { code: '2CG',  label: 'Revenus déjà soumis aux prélèvements sociaux sans CSG déductible (PFU)', form: '2042' },
+  case2BH:  { code: '2BH',  label: 'Revenus déjà soumis aux prélèvements sociaux avec CSG déductible si option barème', form: '2042' },
+  case2AB:  { code: '2AB',  label: "Crédits d'impôt sur valeurs étrangères", form: '2042' },
+  case2CK:  { code: '2CK',  label: 'Prélèvement forfaitaire non libératoire déjà versé (PFNL via 2778-DIV)', form: '2042' },
+  case8VL:  { code: '8VL',  label: 'Impôt payé à l\'étranger (retenue à la source US 15 %)', form: '2042' },
+  case8PL:  { code: '8PL',  label: 'Revenus nets de source étrangère ouvrant droit à crédit d\'impôt', form: '2042' },
+} as const satisfies Record<string, TaxCase>;
+
 /** Ligne du cadre 510 du formulaire 2074. */
 export interface Form2074Line {
   /** Numéro de ligne tel qu'il apparaît dans le cadre 510. */

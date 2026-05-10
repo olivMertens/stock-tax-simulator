@@ -74,27 +74,67 @@ export function groupDividendsByYear(events: DividendEventEur[]): DividendYearSu
 }
 
 /**
- * French tax declaration lines for a given year's dividends.
- * See: https://www.impots.gouv.fr (formulaire 2042 / 2047)
+ * Cases de la déclaration française pour les dividendes de l'année.
  *
- *   2DC = dividendes bruts (avant retenue à la source US)
- *   2AB = crédit d'impôt = retenue US, utilisable contre l'IR français
- *   2BH = montant éligible à l'abattement de 40 % si option barème
- *         (= 2DC pour dividendes US conventionnels éligibles)
+ * Codes officiels — cf. `src/lib/tax-forms.ts` (FORM_2042_DIVIDENDS) et KPMG Avocats
+ * « Obligations fiscales Microsoft » (mai 2026, slides 38–44).
+ *
+ *   2DC = montant brut des dividendes (avant retenue à la source US).
+ *   2CG = SI PFU → même montant que 2DC (ces revenus ont déjà supporté les PS via PFNL).
+ *   2BH = SI option barème (case 2OP) → même montant que 2DC.
+ *         ⚠️ 2BH et 2CG sont mutuellement exclusifs : on ne renseigne que l'un des deux.
+ *   2AB = crédit d'impôt sur valeurs étrangères (= retenue US, 15 %).
+ *   2CK = PFNL trimestriel déjà versé via formulaires 2778-DIV (s'impute sur l'IR).
+ *         0 si l'utilisateur a bénéficié de la dispense (RFR N-2 < 50k€ / 75k€).
+ *   8VL = impôt payé à l'étranger sur ces revenus (= 2AB, déclaré aussi sur la 2042).
+ *   8PL = revenus nets de source étrangère ouvrant droit au crédit d'impôt.
  */
 export interface DividendDeclarationLines {
   year: number;
+  taxMode: 'pfu' | 'bareme';
   box2DC: number;
-  box2AB: number;
+  box2CG: number;
   box2BH: number;
+  box2AB: number;
+  box2CK: number;
+  box8VL: number;
+  box8PL: number;
 }
 
-export function buildDeclarationLines(summary: DividendYearSummary): DividendDeclarationLines {
+export interface BuildDeclarationLinesOptions {
+  /**
+   * Mode d'imposition global (case 2OP). Par défaut PFU.
+   * En cas d'option barème, l'option s'applique à TOUS les revenus mobiliers
+   * (intérêts, dividendes, plus-values) du foyer.
+   */
+  taxMode?: 'pfu' | 'bareme';
+  /**
+   * Montant cumulé du PFNL trimestriel déjà versé en N via les 2778-DIV (case IL).
+   * Laisser à 0 si vous bénéficiez de la dispense (RFR N-2 sous seuil) ou si vous
+   * ne déposez pas les 2778-DIV.
+   */
+  pfnlAlreadyPaidEur?: number;
+}
+
+export function buildDeclarationLines(
+  summary: DividendYearSummary,
+  options: BuildDeclarationLinesOptions = {},
+): DividendDeclarationLines {
+  const taxMode = options.taxMode ?? 'pfu';
+  const pfnl = round2(options.pfnlAlreadyPaidEur ?? 0);
+  const gross = summary.grossEur;
+  const tax = summary.taxWithheldEur;
+  const net = summary.netEur;
   return {
     year: summary.year,
-    box2DC: summary.grossEur,
-    box2AB: summary.taxWithheldEur,
-    box2BH: summary.grossEur,
+    taxMode,
+    box2DC: gross,
+    box2CG: taxMode === 'pfu' ? gross : 0,
+    box2BH: taxMode === 'bareme' ? gross : 0,
+    box2AB: tax,
+    box2CK: pfnl,
+    box8VL: tax,
+    box8PL: net,
   };
 }
 

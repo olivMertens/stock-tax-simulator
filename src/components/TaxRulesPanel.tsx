@@ -247,7 +247,7 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
               Dispense possible si RFR N-2 &lt; 50k€ (célibataire) / 75k€ (couple).
             </p>
             <p className="text-xs text-gray-500">
-              Déclaration annuelle : annexe 2047, puis 2042 — cases 2DC, 2CG/2BH, 2CK (crédit d'impôt), 2OP si barème.
+              Déclaration annuelle : annexe 2047, puis 2042 — 2DC (brut), 2CG (si PFU) ou 2BH (si barème), 2AB (retenue US 15 %), 2CK (PFNL trimestriel déjà versé), 8VL/8PL (crédit d'impôt), 2OP si barème.
             </p>
           </Section>
 
