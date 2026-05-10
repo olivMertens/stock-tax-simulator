@@ -72,7 +72,7 @@ export const DeclarationGuide = React.memo(function DeclarationGuide({ result, l
             </div>
 
             {/* Formulaire 2042-C */}
-            {(declaration.case1TZ > 0 || declaration.case1WZ > 0 || declaration.case1TT > 0) && (
+            {(declaration.case1TZ > 0 || declaration.case1UZ > 0 || declaration.case1TT > 0) && (
               <div>
                 <h4 className="font-semibold text-blue-800 mb-3 text-base">FORMULAIRE 2042-C — Déclaration complémentaire</h4>
                 <div className="space-y-2">
@@ -83,11 +83,11 @@ export const DeclarationGuide = React.memo(function DeclarationGuide({ result, l
                       value={declaration.case1TZ}
                     />
                   )}
-                  {declaration.case1WZ > 0 && (
+                  {declaration.case1UZ > 0 && (
                     <CaseRow
-                      code="1WZ"
+                      code="1UZ"
                       label="Abattement 50% appliqué"
-                      value={declaration.case1WZ}
+                      value={declaration.case1UZ}
                       variant="success"
                     />
                   )}

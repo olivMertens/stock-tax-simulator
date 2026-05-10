@@ -192,7 +192,7 @@ export interface DeclarationData {
   case3VG: number;
   case3VH: number;
   case1TZ: number;
-  case1WZ: number;
+  case1UZ: number;
   case1TT: number;
   option2OP: boolean;
   case3SG: number;

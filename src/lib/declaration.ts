@@ -14,8 +14,8 @@ export function generateDeclaration(
 
   // Case 1TZ: gain d'acquisition net, fraction ≤ 300k€, AFTER 50% abatement
   const case1TZ = acquisitionGainTax.below300k - acquisitionGainTax.abatement50;
-  // Case 1WZ: abatement amount
-  const case1WZ = acquisitionGainTax.abatement50;
+  // Case 1UZ: abatement amount
+  const case1UZ = acquisitionGainTax.abatement50;
   // Case 1TT: fraction > 300k€
   const case1TT = acquisitionGainTax.above300k;
 
@@ -59,7 +59,7 @@ export function generateDeclaration(
     case3VG,
     case3VH,
     case1TZ: Math.max(0, case1TZ),
-    case1WZ,
+    case1UZ,
     case1TT,
     option2OP,
     case3SG,
@@ -83,12 +83,12 @@ export function formatDeclarationText(data: DeclarationData): string {
     text += `  Case 3SG : ${fmt(data.case3SG)} (abattement de droit commun)\n`;
   text += '\n';
 
-  if (data.case1TZ > 0 || data.case1WZ > 0 || data.case1TT > 0) {
+  if (data.case1TZ > 0 || data.case1UZ > 0 || data.case1TT > 0) {
     text += `FORMULAIRE 2042-C (déclaration complémentaire) :\n`;
     if (data.case1TZ > 0)
       text += `  Case 1TZ : ${fmt(data.case1TZ)} (gain d'acquisition AGA, fraction ≤ 300k€, après abattement 50%)\n`;
-    if (data.case1WZ > 0)
-      text += `  Case 1WZ : ${fmt(data.case1WZ)} (abattement 50% appliqué)\n`;
+    if (data.case1UZ > 0)
+      text += `  Case 1UZ : ${fmt(data.case1UZ)} (abattement 50% appliqué)\n`;
     if (data.case1TT > 0)
       text += `  Case 1TT : ${fmt(data.case1TT)} (gain d'acquisition AGA, fraction > 300k€)\n`;
     text += '\n';

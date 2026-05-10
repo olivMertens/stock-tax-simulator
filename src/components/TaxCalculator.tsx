@@ -129,7 +129,7 @@ export const TaxCalculator = React.memo(function TaxCalculator({ result, taxMode
                   </tr>
                   <tr className="border-b bg-gray-50 text-xs text-gray-600">
                     <td colSpan={2} className="py-1 pl-6">
-                      📋 <strong>Reportable sur</strong>: Formulaire <strong>2042-C</strong>, Cases <strong>1TZ</strong> (≤ 300k€, après abattement) + <strong>1WZ</strong> (montant abattement) {r.acquisitionGainTax.above300k > 0 && (<>+ <strong>1TT</strong> (fraction {'>'} 300k€) </>)}
+                      📋 <strong>Reportable sur</strong>: Formulaire <strong>2042-C</strong>, Cases <strong>1TZ</strong> (≤ 300k€, après abattement) + <strong>1UZ</strong> (montant abattement) {r.acquisitionGainTax.above300k > 0 && (<>+ <strong>1TT</strong> (fraction {'>'} 300k€) </>)}
                     </td>
                   </tr>
                   <tr className="border-b">

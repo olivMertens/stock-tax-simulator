@@ -82,7 +82,7 @@ describe('generateDeclaration', () => {
     const decl = generateDeclaration(result, [entry], 2024);
     // below300k(10000) - abatement50(5000) = 5000
     expect(decl.case1TZ).toBe(5000);
-    expect(decl.case1WZ).toBe(5000);
+    expect(decl.case1UZ).toBe(5000);
   });
 
   it('sets option2OP for barème mode', () => {

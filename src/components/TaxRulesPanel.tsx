@@ -109,7 +109,7 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
               Si la MV de cession est supérieure au prix de vente, elle s'impute sur le gain d'acquisition.
             </p>
             <p className="text-xs text-gray-500">
-              Déclaration : 2042-C — cases 1TZ (≤ 300k après abattement), 1WZ (abattement), 1TT (&gt; 300k).
+              Déclaration : 2042-C — cases 1TZ (≤ 300k après abattement), 1UZ (abattement), 1TT (&gt; 300k).
             </p>
             <p className="text-xs text-gray-500">
               Source : <a href="https://www.impots.gouv.fr/particulier/questions/mon-entreprise-ma-attribue-des-actions-gratuites-comment-sera-impose-le-gain" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">impots.gouv.fr</a>
@@ -143,7 +143,7 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
               La durée de détention est appréciée entre la date d'acquisition définitive et la date de cession.
             </p>
             <p className="text-xs text-gray-500">
-              Déclaration : 2042-C — cases 1TZ (≤ 300k après abattement), 1WZ (abattement), 1TT (&gt; 300k).
+              Déclaration : 2042-C — cases 1TZ (≤ 300k après abattement), 1UZ (abattement), 1TT (&gt; 300k).
             </p>
             <p className="text-xs text-gray-500">
               Source : <a href="https://www.impots.gouv.fr/particulier/questions/mon-entreprise-ma-attribue-des-actions-gratuites-comment-sera-impose-le-gain" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">impots.gouv.fr</a>
@@ -281,7 +281,7 @@ export function TaxRulesPanel({ onClose }: { onClose: () => void }) {
               </div>
               <div className="flex gap-2">
                 <span className="shrink-0 font-semibold text-primary">③</span>
-                <span><strong>Cession d'actions</strong> → annexe 2074 + 2042 (3VG/3VH, 3SG) + 2042-C (1TZ/1WZ/1TT si qualifié Macron).</span>
+                <span><strong>Cession d'actions</strong> → annexe 2074 + 2042 (3VG/3VH, 3SG) + 2042-C (1TZ/1UZ/1TT si qualifié Macron).</span>
               </div>
               <div className="flex gap-2">
                 <span className="shrink-0 font-semibold text-primary">④</span>
